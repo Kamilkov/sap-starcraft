@@ -1,0 +1,25 @@
+{
+  "BASEINFO": {
+    "FROM": [
+      "ZI_SCEMAINTORDER",
+      "ZI_SCEORDERCONSUMPTION"
+    ],
+    "ASSOCIATED": [
+      "ZC_SCEDIVISION",
+      "ZC_SCEEVENT",
+      "ZC_SCEGAME",
+      "ZC_SCEMATERIAL",
+      "ZC_SCENOTIFICATION",
+      "ZC_SCEPLANT",
+      "ZI_SCEDIVISION",
+      "ZI_SCEEVENT",
+      "ZI_SCEGAME",
+      "ZI_SCEMATERIAL",
+      "ZI_SCENOTIFICATION",
+      "ZI_SCEPLANT"
+    ],
+    "BASE": [
+      "ZI_SCEMAINTORDER"
+    ]
+  }
+}

@@ -1,0 +1,371 @@
+{
+    "_version": "1.73.1",
+    "sap.app": {
+        "id": "zsce.game",
+        "type": "application",
+        "i18n": "i18n/i18n.properties",
+        "applicationVersion": {
+            "version": "0.0.1"
+        },
+        "title": "{{appTitle}}",
+        "description": "{{appDescription}}",
+        "resources": "resources.json",
+        "sourceTemplate": {
+            "id": "@sap/generator-fiori:lrop",
+            "version": "1.21.0",
+            "toolsId": "1c8e535e-9584-47f3-8784-20af9f2aa5dd"
+        },
+        "dataSources": {
+            "annotation": {
+                "type": "ODataAnnotation",
+                "uri": "annotations/annotation.xml",
+                "settings": {
+                    "localUri": "annotations/annotation.xml"
+                }
+            },
+            "mainService": {
+                "uri": "/sap/opu/odata4/sap/zsb_sce_o4/srvd/sap/zsd_sce/0001/",
+                "type": "OData",
+                "settings": {
+                    "annotations": [
+                        "annotation"
+                    ],
+                    "localUri": "localService/mainService/metadata.xml",
+                    "odataVersion": "4.0"
+                }
+            }
+        }
+    },
+    "sap.ui": {
+        "technology": "UI5",
+        "icons": {
+            "icon": "",
+            "favIcon": "",
+            "phone": "",
+            "phone@2": "",
+            "tablet": "",
+            "tablet@2": ""
+        },
+        "deviceTypes": {
+            "desktop": true,
+            "tablet": true,
+            "phone": true
+        }
+    },
+    "sap.ui5": {
+        "flexEnabled": true,
+        "dependencies": {
+            "minUI5Version": "1.136.7",
+            "libs": {
+                "sap.m": {},
+                "sap.ui.core": {},
+                "sap.fe.templates": {}
+            }
+        },
+        "contentDensities": {
+            "compact": true,
+            "cozy": true
+        },
+        "models": {
+            "i18n": {
+                "type": "sap.ui.model.resource.ResourceModel",
+                "settings": {
+                    "bundleName": "zsce.game.i18n.i18n"
+                }
+            },
+            "": {
+                "dataSource": "mainService",
+                "preload": true,
+                "settings": {
+                    "operationMode": "Server",
+                    "autoExpandSelect": true,
+                    "earlyRequests": true
+                }
+            },
+            "@i18n": {
+                "type": "sap.ui.model.resource.ResourceModel",
+                "uri": "i18n/i18n.properties"
+            }
+        },
+        "resources": {
+            "css": []
+        },
+        "routing": {
+            "config": {},
+            "routes": [
+                {
+                    "pattern": ":?query:",
+                    "name": "GameList",
+                    "target": "GameList"
+                },
+                {
+                    "pattern": "Game({key}):?query:",
+                    "name": "GameObjectPage",
+                    "target": "GameObjectPage"
+                },
+                {
+                    "pattern": "Game({key})/_Division({key2}):?query:",
+                    "name": "DivisionObjectPage",
+                    "target": "DivisionObjectPage"
+                },
+                {
+                    "pattern": "Game({key})/_Division({key2})/_ProdOrder({key3}):?query:",
+                    "name": "ProdOrderObjectPage",
+                    "target": "ProdOrderObjectPage"
+                },
+                {
+                    "pattern": "Game({key})/_Division({key2})/_Plant({key3}):?query:",
+                    "name": "PlantObjectPage",
+                    "target": "PlantObjectPage"
+                },
+                {
+                    "pattern": "Game({key})/_Division({key2})/_Requirement({key3}):?query:",
+                    "name": "RequirementObjectPage",
+                    "target": "RequirementObjectPage"
+                },
+                {
+                    "pattern": "Game({key})/_Division({key2})/_PlannedOrder({key3}):?query:",
+                    "name": "PlannedOrderObjectPage",
+                    "target": "PlannedOrderObjectPage"
+                },
+                {
+                    "pattern": "Game({key})/_Division({key2})/_Event({key3}):?query:",
+                    "name": "EventObjectPage",
+                    "target": "EventObjectPage"
+                },
+                {
+                    "pattern": "Game({key})/_Division({key2})/_Equipment({key3}):?query:",
+                    "name": "EquipmentObjectPage",
+                    "target": "EquipmentObjectPage"
+                },
+                {
+                    "pattern": "Game({key})/_Division({key2})/_Notification({key3}):?query:",
+                    "name": "NotificationObjectPage",
+                    "target": "NotificationObjectPage"
+                },
+                {
+                    "pattern": "Game({key})/_Division({key2})/_MaintOrder({key3}):?query:",
+                    "name": "MaintOrderObjectPage",
+                    "target": "MaintOrderObjectPage"
+                },
+                {
+                    "pattern": "Game({key})/_Division({key2})/_SerialNumber({key3}):?query:",
+                    "name": "SerialNumberObjectPage",
+                    "target": "SerialNumberObjectPage"
+                }
+            ],
+            "targets": {
+                "GameList": {
+                    "type": "Component",
+                    "id": "GameList",
+                    "name": "sap.fe.templates.ListReport",
+                    "options": {
+                        "settings": {
+                            "contextPath": "/Game",
+                            "variantManagement": "Page",
+                            "navigation": {
+                                "Game": {
+                                    "detail": {
+                                        "route": "GameObjectPage"
+                                    }
+                                }
+                            },
+                            "controlConfiguration": {
+                                "@com.sap.vocabularies.UI.v1.LineItem": {
+                                    "tableSettings": {
+                                        "type": "ResponsiveTable"
+                                    }
+                                }
+                            },
+                            "initialLoad": "Enabled"
+                        }
+                    }
+                },
+                "GameObjectPage": {
+                    "type": "Component",
+                    "id": "GameObjectPage",
+                    "name": "sap.fe.templates.ObjectPage",
+                    "options": {
+                        "settings": {
+                            "editableHeaderContent": false,
+                            "contextPath": "/Game",
+                            "navigation": {
+                                "_Division": {
+                                    "detail": {
+                                        "route": "DivisionObjectPage"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "DivisionObjectPage": {
+                    "type": "Component",
+                    "id": "DivisionObjectPage",
+                    "name": "sap.fe.templates.ObjectPage",
+                    "options": {
+                        "settings": {
+                            "editableHeaderContent": false,
+                            "contextPath": "/Game/_Division",
+                            "navigation": {
+                                "_ProdOrder": {
+                                    "detail": {
+                                        "route": "ProdOrderObjectPage"
+                                    }
+                                },
+                                "_Plant": {
+                                    "detail": {
+                                        "route": "PlantObjectPage"
+                                    }
+                                },
+                                "_Requirement": {
+                                    "detail": {
+                                        "route": "RequirementObjectPage"
+                                    }
+                                },
+                                "_PlannedOrder": {
+                                    "detail": {
+                                        "route": "PlannedOrderObjectPage"
+                                    }
+                                },
+                                "_Event": {
+                                    "detail": {
+                                        "route": "EventObjectPage"
+                                    }
+                                },
+                                "_Equipment": {
+                                    "detail": {
+                                        "route": "EquipmentObjectPage"
+                                    }
+                                },
+                                "_Notification": {
+                                    "detail": {
+                                        "route": "NotificationObjectPage"
+                                    }
+                                },
+                                "_MaintOrder": {
+                                    "detail": {
+                                        "route": "MaintOrderObjectPage"
+                                    }
+                                },
+                                "_SerialNumber": {
+                                    "detail": {
+                                        "route": "SerialNumberObjectPage"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "ProdOrderObjectPage": {
+                    "type": "Component",
+                    "id": "ProdOrderObjectPage",
+                    "name": "sap.fe.templates.ObjectPage",
+                    "options": {
+                        "settings": {
+                            "editableHeaderContent": false,
+                            "contextPath": "/Game/_Division/_ProdOrder"
+                        }
+                    }
+                },
+                "PlantObjectPage": {
+                    "type": "Component",
+                    "id": "PlantObjectPage",
+                    "name": "sap.fe.templates.ObjectPage",
+                    "options": {
+                        "settings": {
+                            "editableHeaderContent": false,
+                            "contextPath": "/Game/_Division/_Plant"
+                        }
+                    }
+                },
+                "RequirementObjectPage": {
+                    "type": "Component",
+                    "id": "RequirementObjectPage",
+                    "name": "sap.fe.templates.ObjectPage",
+                    "options": {
+                        "settings": {
+                            "editableHeaderContent": false,
+                            "contextPath": "/Game/_Division/_Requirement"
+                        }
+                    }
+                },
+                "PlannedOrderObjectPage": {
+                    "type": "Component",
+                    "id": "PlannedOrderObjectPage",
+                    "name": "sap.fe.templates.ObjectPage",
+                    "options": {
+                        "settings": {
+                            "editableHeaderContent": false,
+                            "contextPath": "/Game/_Division/_PlannedOrder"
+                        }
+                    }
+                },
+                "EventObjectPage": {
+                    "type": "Component",
+                    "id": "EventObjectPage",
+                    "name": "sap.fe.templates.ObjectPage",
+                    "options": {
+                        "settings": {
+                            "editableHeaderContent": false,
+                            "contextPath": "/Game/_Division/_Event"
+                        }
+                    }
+                },
+                "EquipmentObjectPage": {
+                    "type": "Component",
+                    "id": "EquipmentObjectPage",
+                    "name": "sap.fe.templates.ObjectPage",
+                    "options": {
+                        "settings": {
+                            "editableHeaderContent": false,
+                            "contextPath": "/Game/_Division/_Equipment"
+                        }
+                    }
+                },
+                "NotificationObjectPage": {
+                    "type": "Component",
+                    "id": "NotificationObjectPage",
+                    "name": "sap.fe.templates.ObjectPage",
+                    "options": {
+                        "settings": {
+                            "editableHeaderContent": false,
+                            "contextPath": "/Game/_Division/_Notification"
+                        }
+                    }
+                },
+                "MaintOrderObjectPage": {
+                    "type": "Component",
+                    "id": "MaintOrderObjectPage",
+                    "name": "sap.fe.templates.ObjectPage",
+                    "options": {
+                        "settings": {
+                            "editableHeaderContent": false,
+                            "contextPath": "/Game/_Division/_MaintOrder"
+                        }
+                    }
+                },
+                "SerialNumberObjectPage": {
+                    "type": "Component",
+                    "id": "SerialNumberObjectPage",
+                    "name": "sap.fe.templates.ObjectPage",
+                    "options": {
+                        "settings": {
+                            "editableHeaderContent": false,
+                            "contextPath": "/Game/_Division/_SerialNumber"
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "sap.fiori": {
+        "registrationIds": [],
+        "archeType": "transactional"
+    },
+    "sap.fe": {
+        "app": {
+            "enableLazyLoading": true
+        }
+    }
+}

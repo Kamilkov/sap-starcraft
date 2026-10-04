@@ -1,0 +1,15 @@
+{
+  "BASEINFO": {
+    "FROM": [
+      "ZI_SCEDIVISION",
+      "ZSCE_EVENT"
+    ],
+    "ASSOCIATED": [
+      "ZI_SCEDIVISION",
+      "ZI_SCEGAME",
+      "ZI_SCEMATERIAL",
+      "ZI_SCEPLANT",
+      "ZI_SCEPRODORDER"
+    ]
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "BASEINFO": {
+    "FROM": [
+      "ZI_SCEGAME"
+    ],
+    "ASSOCIATED": [
+      "ZC_SCEDIVISION",
+      "ZC_SCEDIVISIONFINANCE",
+      "ZI_SCEDIVISION"
+    ],
+    "BASE": [
+      "ZI_SCEGAME"
+    ]
+  }
+}

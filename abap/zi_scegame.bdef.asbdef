@@ -1,0 +1,333 @@
+managed implementation in class zbp_scegame unique;
+strict ( 2 );
+
+define behavior for ZI_SCEGame alias Game
+persistent table zsce_game
+lock master
+authorization master ( global )
+etag master LastChangedAt
+{
+  create;
+  update;
+  delete;
+  association _Division { create; }
+
+  field ( readonly : update ) GameUUID;
+  field ( readonly ) CreatedAt, LastChangedAt;
+  field ( mandatory : create ) ReplayHash;
+
+  validation validateReplayHash on save { create; field ReplayHash; }
+
+  mapping for zsce_game
+  {
+    GameUUID           = game_uuid;
+    ReplayHash         = replay_hash;
+    MapName            = map_name;
+    PlayedAt           = played_at;
+    DurationSeconds    = duration_seconds;
+    WinnerDivisionUUID = winner_division_uuid;
+    CreatedAt          = created_at;
+    LastChangedAt      = last_changed_at;
+  }
+}
+
+define behavior for ZI_SCEDivision alias Division
+persistent table zsce_division
+lock dependent by _Game
+authorization dependent by _Game
+etag dependent by _Game
+{
+  update;
+  delete;
+  association _Game;
+  association _Plant { create; }
+  association _ProdOrder { create; }
+  association _Event { create; }
+  association _Requirement { create; }
+  association _PlannedOrder { create; }
+  // PM: the bot posts notifications; maintenance orders come from createOrder alone
+  association _Notification { create; }
+  association _MaintOrder { internal create; }
+
+  // ponytail: no authorization check; Game's global authorization handler is an empty stub anyway
+  action ( authorization : none ) releaseOrder parameter ZA_SCEReleaseOrder { default function GetDefaultsForReleaseOrder; }
+  // MRP (B.3): PIRs (MD61), a regenerative run (MD01); same ponytail as releaseOrder
+  action ( authorization : none ) planRequirement parameter ZA_SCEPlanRequirement { default function GetDefaultsForPlanRequirement; }
+  action ( authorization : none ) runMrp;
+
+  // Fiori re-reads the table an action changes
+  side effects
+  {
+    action releaseOrder affects entity _ProdOrder;
+    action planRequirement affects entity _Requirement;
+    action runMrp affects entity _PlannedOrder;
+  }
+
+  field ( readonly : update ) DivisionUUID;
+  field ( readonly ) GameUUID;
+
+  mapping for zsce_division
+  {
+    DivisionUUID = division_uuid;
+    GameUUID     = game_uuid;
+    CompanyCode  = bukrs;
+    DivisionCode = division_code;
+    PlayerName   = player_name;
+    GameResult   = game_result;
+  }
+}
+
+define behavior for ZI_SCEPlant alias Plant
+persistent table zsce_plant
+lock dependent by _Game
+authorization dependent by _Game
+etag dependent by _Game
+{
+  update;
+  delete;
+  association _Division;
+  association _Game;
+
+  field ( readonly : update ) PlantUUID;
+  field ( readonly ) DivisionUUID, GameUUID;
+
+  mapping for zsce_plant
+  {
+    PlantUUID    = plant_uuid;
+    DivisionUUID = division_uuid;
+    PlantCode    = plant_code;
+    PosX         = pos_x;
+    PosY         = pos_y;
+    FoundedAt    = founded_at;
+    ClosedAt     = closed_at;
+  }
+}
+
+define behavior for ZI_SCEProdOrder alias ProdOrder
+persistent table zsce_prodord
+lock dependent by _Game
+authorization dependent by _Game
+etag dependent by _Game
+{
+  update;
+  delete;
+  association _Division;
+  association _Game;
+
+  // ponytail: no authorization check, like releaseOrder; RELEASED only (feature control), the bot owns later states
+  action ( features : instance, authorization : none ) cancelOrder result [1] $self;
+
+  field ( readonly : update ) OrderUUID;
+  field ( readonly ) DivisionUUID, GameUUID;
+
+  mapping for zsce_prodord
+  {
+    OrderUUID    = order_uuid;
+    DivisionUUID = division_uuid;
+    PlantUUID    = plant_uuid;
+    Material     = matnr;
+    Quantity     = quantity;
+    OrderStatus  = order_status;
+    ReleasedAt   = released_at;
+    ConfirmedAt  = confirmed_at;
+    UnitTag      = unit_tag;
+    StatusText   = status_text;
+  }
+}
+
+define behavior for ZI_SCEPIR alias Requirement
+persistent table zsce_pir
+lock dependent by _Game
+authorization dependent by _Game
+etag dependent by _Game
+{
+  delete;
+  association _Division;
+  association _Game;
+
+  // a row action: the Division page has no edit mode, so Fiori offers no standard Delete; same ponytail as releaseOrder
+  action ( authorization : none ) deleteRequirement;
+
+  side effects
+  {
+    action deleteRequirement affects entity _Division._Requirement;
+  }
+
+  field ( readonly : update ) RequirementUUID;
+  field ( readonly ) DivisionUUID, GameUUID;
+
+  mapping for zsce_pir
+  {
+    RequirementUUID = pir_uuid;
+    DivisionUUID    = division_uuid;
+    Material        = matnr;
+    Quantity        = quantity;
+    DueSeconds      = due_seconds;
+  }
+}
+
+define behavior for ZI_SCEPlannedOrder alias PlannedOrder
+persistent table zsce_planord
+lock dependent by _Game
+authorization dependent by _Game
+etag dependent by _Game
+{
+  delete;
+  // the MRP run writes exception texts and the two actions write Firmed; nothing is changed from outside
+  internal update;
+  association _Division;
+  association _Game;
+
+  // CO40/CO41; ponytail: no authorization check, like releaseOrder
+  action ( authorization : none ) convertOrder;
+  // a firmed planned order survives the MRP run; same ponytail
+  action ( authorization : none ) firmOrder;
+  action ( authorization : none ) unfirmOrder;
+
+  // the planned order deletes itself and its production orders appear on the Division
+  side effects
+  {
+    action convertOrder affects entity _Division._PlannedOrder, entity _Division._ProdOrder;
+    action firmOrder affects entity _Division._PlannedOrder;
+    action unfirmOrder affects entity _Division._PlannedOrder;
+  }
+
+  field ( readonly : update ) PlannedOrderUUID;
+  field ( readonly ) DivisionUUID, GameUUID;
+
+  mapping for zsce_planord
+  {
+    PlannedOrderUUID = planord_uuid;
+    DivisionUUID     = division_uuid;
+    Material         = matnr;
+    Quantity         = quantity;
+    StartSeconds     = start_seconds;
+    FinishSeconds    = finish_seconds;
+    PlannedFor       = planned_for;
+    ExceptionText    = exception_text;
+    Firmed           = firmed;
+  }
+}
+
+define behavior for ZI_SCEEvent alias Event
+persistent table zsce_event
+lock dependent by _Game
+authorization dependent by _Game
+etag dependent by _Game
+{
+  // the movements of a maintenance order (repair cost) can be neither changed nor deleted; all others as before
+  update ( features : instance );
+  delete ( features : instance );
+  association _Division;
+  association _Game;
+
+  field ( readonly : update ) EventUUID;
+  field ( readonly ) DivisionUUID, GameUUID;
+
+  validation validateMovementType on save { create; field MovementType; }
+  // only for movements whose order is a maintenance order; an update must not turn a movement into one unchecked
+  validation validatePmEvent on save { create; update; }
+
+  mapping for zsce_event
+  {
+    EventUUID    = event_uuid;
+    DivisionUUID = division_uuid;
+    PlantUUID    = plant_uuid;
+    OrderUUID    = order_uuid;
+    GameSeconds  = game_seconds;
+    MovementType = mvt_type;
+    Material     = matnr;
+    Quantity     = quantity;
+    MineralValue = mineral_value;
+    GasValue     = gas_value;
+    EventSource  = event_source;
+    UnitTag      = unit_tag;
+  }
+}
+
+define behavior for ZI_SCENotification alias Notification
+persistent table zsce_notif
+lock dependent by _Game
+authorization dependent by _Game
+etag dependent by _Game
+{
+  // no update and no delete from outside: the bot reports through reportNotification, Fiori acts through createOrder
+  internal update;
+  association _Division;
+  association _Game;
+
+  // ponytail: no authorization check, like releaseOrder
+  action ( features : instance, authorization : none ) createOrder result [1] $self;
+  action ( authorization : none ) reportNotification parameter ZA_SCENotifReport result [1] $self;
+
+  side effects
+  {
+    // _MaintOrder: the orders table of the notification's own page
+    action createOrder affects entity _MaintOrder, entity _Division._MaintOrder, entity _Division._Notification;
+  }
+
+  field ( readonly : update ) NotificationUUID;
+  // the status is never a consumer's: a new notification is OPEN, createOrder alone sets IN_PROCESS
+  field ( readonly ) DivisionUUID, GameUUID, NotificationStatus, ClosedAt;
+
+  determination setOpen on modify { create; }
+  validation validateNotification on save { create; }
+
+  mapping for zsce_notif
+  {
+    NotificationUUID   = notif_uuid;
+    DivisionUUID       = division_uuid;
+    UnitTag            = unit_tag;
+    Material           = matnr;
+    PlantUUID          = plant_uuid;
+    NotificationStatus = notif_status;
+    Priority           = priority;
+    Health             = health;
+    HealthMax          = health_max;
+    ReportedAt         = reported_at;
+    ClosedAt           = closed_at;
+    StatusText         = status_text;
+  }
+}
+
+define behavior for ZI_SCEMaintOrder alias MaintOrder
+persistent table zsce_maintord
+lock dependent by _Game
+authorization dependent by _Game
+etag dependent by _Game
+{
+  // no create, update or delete from outside: createOrder creates, the bot reports through reportRepair
+  internal update;
+  association _Division;
+  association _Game;
+
+  // ponytail: no authorization check, like cancelOrder of the production order
+  action ( features : instance, authorization : none ) cancelOrder result [1] $self;
+  action ( authorization : none ) reportRepair parameter ZA_SCERepairReport result [1] $self;
+
+  side effects
+  {
+    action cancelOrder affects entity _Division._MaintOrder, entity _Division._Notification;
+  }
+
+  field ( readonly : update ) OrderUUID;
+  field ( readonly ) DivisionUUID, GameUUID;
+
+  mapping for zsce_maintord
+  {
+    OrderUUID        = order_uuid;
+    DivisionUUID     = division_uuid;
+    NotificationUUID = notif_uuid;
+    UnitTag          = unit_tag;
+    Material         = matnr;
+    PlantUUID        = plant_uuid;
+    OrderStatus      = order_status;
+    Priority         = priority;
+    ReportedAt       = reported_at;
+    ReleasedAt       = released_at;
+    StartedAt        = started_at;
+    ConfirmedAt      = confirmed_at;
+    WorkerTag        = worker_tag;
+    StatusText       = status_text;
+  }
+}

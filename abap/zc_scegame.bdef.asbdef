@@ -1,0 +1,89 @@
+projection;
+strict ( 2 );
+use side effects;
+
+define behavior for ZC_SCEGame alias Game
+{
+  use create;
+  use update;
+  use delete;
+  use association _Division { create; }
+}
+
+define behavior for ZC_SCEDivision alias Division
+{
+  use update;
+  use delete;
+  use association _Game;
+  use association _Plant { create; }
+  use association _ProdOrder { create; }
+  use association _Event { create; }
+  use action releaseOrder;
+  use function GetDefaultsForReleaseOrder;
+  use association _Requirement;
+  use association _PlannedOrder;
+  use action planRequirement;
+  use function GetDefaultsForPlanRequirement;
+  use action runMrp;
+  use association _Notification { create; }
+  use association _MaintOrder;
+}
+
+define behavior for ZC_SCENotification alias Notification
+{
+  use action createOrder;
+  use action reportNotification;
+  use association _Division;
+  use association _Game;
+}
+
+define behavior for ZC_SCEMaintOrder alias MaintOrder
+{
+  use action cancelOrder;
+  use action reportRepair;
+  use association _Division;
+  use association _Game;
+}
+
+define behavior for ZC_SCEPIR alias Requirement
+{
+  use delete;
+  use action deleteRequirement;
+  use association _Division;
+  use association _Game;
+}
+
+define behavior for ZC_SCEPlannedOrder alias PlannedOrder
+{
+  use delete;
+  use action convertOrder;
+  use action firmOrder;
+  use action unfirmOrder;
+  use association _Division;
+  use association _Game;
+}
+
+define behavior for ZC_SCEPlant alias Plant
+{
+  use update;
+  use delete;
+  use association _Division;
+  use association _Game;
+}
+
+define behavior for ZC_SCEProdOrder alias ProdOrder
+{
+  use update;
+  use delete;
+  use action cancelOrder;
+  use association _Division;
+  use association _Game;
+}
+
+define behavior for ZC_SCEEvent alias Event
+{
+  use update;
+  use delete;
+  use association _Division;
+  use association _Game;
+}

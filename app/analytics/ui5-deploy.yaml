@@ -1,0 +1,27 @@
+# yaml-language-server: $schema=https://sap.github.io/ui5-tooling/schema/ui5.yaml.json
+specVersion: "3.1"
+metadata:
+  name: zsce.analytics
+type: application
+builder:
+  resources:
+    excludes:
+      - /test/**
+      - /localService/**
+  customTasks:
+    - name: deploy-to-abap
+      afterTask: generateCachebusterInfo
+      configuration:
+        target:
+          url: http://localhost:50000
+          client: "001"
+        credentials:
+          username: env:SAP_USER
+          password: env:SAP_PASSWORD
+        app:
+          name: ZSCE_ANALYTICS
+          description: Economy Analysis
+          package: $ZSCE
+          transport: ""
+        exclude:
+          - /test/

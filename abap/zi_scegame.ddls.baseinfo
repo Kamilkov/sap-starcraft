@@ -1,0 +1,10 @@
+{
+  "BASEINFO": {
+    "FROM": [
+      "ZSCE_GAME"
+    ],
+    "ASSOCIATED": [
+      "ZI_SCEDIVISION"
+    ]
+  }
+}

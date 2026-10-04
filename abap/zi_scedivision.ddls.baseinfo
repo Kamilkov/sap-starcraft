@@ -1,0 +1,20 @@
+{
+  "BASEINFO": {
+    "FROM": [
+      "ZSCE_DIVISION"
+    ],
+    "ASSOCIATED": [
+      "ZI_SCECOMPANY",
+      "ZI_SCEDIVISIONNETWORTH",
+      "ZI_SCEEVENT",
+      "ZI_SCEGAME",
+      "ZI_SCEMAINTORDER",
+      "ZI_SCENOTIFICATION",
+      "ZI_SCEPIR",
+      "ZI_SCEPLANNEDORDER",
+      "ZI_SCEPLANT",
+      "ZI_SCEPRODORDER",
+      "ZI_SCESTOCKBALANCE"
+    ]
+  }
+}

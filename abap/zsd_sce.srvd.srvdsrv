@@ -1,0 +1,20 @@
+@EndUserText.label: 'StarCraft Enterprise'
+define service ZSD_SCE {
+  expose ZC_SCEGame         as Game;
+  expose ZC_SCEDivision     as Division;
+  expose ZC_SCEPlant        as Plant;
+  expose ZC_SCEProdOrder    as ProdOrder;
+  expose ZC_SCEEvent        as Event;
+  expose ZC_SCECompany      as Company;
+  expose ZC_SCEMaterial     as Material;
+  expose ZC_SCEStockBalance as StockBalance;
+  expose ZC_SCEBuildableMaterial as BuildableMaterial;
+  expose ZC_SCEDivisionFinance   as DivisionFinance;
+  expose ZC_SCEPlantFinance      as PlantFinance;
+  expose ZC_SCEPIR               as Requirement;
+  expose ZC_SCEPlannedOrder      as PlannedOrder;
+  expose ZC_SCENotification      as Notification;
+  expose ZC_SCEMaintOrder        as MaintOrder;
+  expose ZC_SCEEquipment         as Equipment;
+  expose ZC_SCESerialNumber      as SerialNumber;
+}

@@ -1,0 +1,33 @@
+managed implementation in class zbp_scematerial unique;
+strict ( 2 );
+
+define behavior for ZI_SCEMaterial alias Material
+persistent table zsce_material
+lock master
+authorization master ( global )
+etag master LastChangedAt
+{
+  create;
+  update;
+  delete;
+
+  field ( readonly : update ) MaterialUUID;
+  field ( readonly ) LastChangedAt;
+  field ( mandatory : create ) Material;
+
+  mapping for zsce_material
+  {
+    MaterialUUID  = material_uuid;
+    Material      = matnr;
+    CompanyCode   = bukrs;
+    Category      = category;
+    MineralCost   = mineral_cost;
+    GasCost       = gas_cost;
+    SupplyCost    = supply_cost;
+    SupplyProvided = supply_provided;
+    BuildSeconds  = build_seconds;
+    ProducedBy    = produced_by;
+    Prerequisite  = prerequisite;
+    LastChangedAt = last_changed_at;
+  }
+}

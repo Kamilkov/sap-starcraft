@@ -1,0 +1,10 @@
+{
+  "BASEINFO": {
+    "FROM": [
+      "ZSCE_COMPANY"
+    ],
+    "ASSOCIATED": [
+      "ZI_SCEDIVISION"
+    ]
+  }
+}

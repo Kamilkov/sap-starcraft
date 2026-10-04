@@ -1,0 +1,11 @@
+{
+  "BASEINFO": {
+    "FROM": [
+      "ZSCE_DIVISION",
+      "ZSCE_EVENT"
+    ],
+    "ASSOCIATED": [
+      "ZI_SCEMATERIAL"
+    ]
+  }
+}

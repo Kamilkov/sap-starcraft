@@ -1,0 +1,10 @@
+{
+  "BASEINFO": {
+    "FROM": [
+      "ZSCE_EVENT",
+      "ZSCE_MAINTORD",
+      "ZSCE_MATERIAL",
+      "ZSCE_PRODORD"
+    ]
+  }
+}

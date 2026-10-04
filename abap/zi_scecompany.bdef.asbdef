@@ -1,0 +1,26 @@
+managed implementation in class zbp_scecompany unique;
+strict ( 2 );
+
+define behavior for ZI_SCECompany alias Company
+persistent table zsce_company
+lock master
+authorization master ( global )
+etag master LastChangedAt
+{
+  create;
+  update;
+  delete;
+
+  field ( readonly : update ) CompanyUUID;
+  field ( readonly ) LastChangedAt;
+  field ( mandatory : create ) CompanyCode;
+
+  mapping for zsce_company
+  {
+    CompanyUUID   = company_uuid;
+    CompanyCode   = bukrs;
+    CompanyName   = butxt;
+    Race          = race;
+    LastChangedAt = last_changed_at;
+  }
+}

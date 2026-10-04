@@ -1,0 +1,8 @@
+{
+  "BASEINFO": {
+    "FROM": [
+      "ZI_SCEMATERIALCATEGORY",
+      "ZSCE_EVENT"
+    ]
+  }
+}

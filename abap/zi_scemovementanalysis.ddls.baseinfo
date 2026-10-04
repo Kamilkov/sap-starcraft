@@ -1,0 +1,13 @@
+{
+  "BASEINFO": {
+    "FROM": [
+      "ZI_SCELATESTGAME",
+      "ZSCE_COMPANY",
+      "ZSCE_DIVISION",
+      "ZSCE_EVENT",
+      "ZSCE_GAME",
+      "ZSCE_MATERIAL",
+      "ZSCE_PLANT"
+    ]
+  }
+}

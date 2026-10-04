@@ -1,0 +1,15 @@
+{
+  "BASEINFO": {
+    "FROM": [
+      "ZI_SCESERIALDEATH",
+      "ZI_SCESERIALRECEIPT",
+      "ZI_SCETAGGEDEVENT"
+    ],
+    "ASSOCIATED": [
+      "ZI_SCEDIVISION",
+      "ZI_SCEEVENT",
+      "ZI_SCEMATERIAL",
+      "ZI_SCEPLANT"
+    ]
+  }
+}

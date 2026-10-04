@@ -1,0 +1,16 @@
+{
+  "BASEINFO": {
+    "FROM": [
+      "ZI_SCEPIR"
+    ],
+    "ASSOCIATED": [
+      "ZC_SCEDIVISION",
+      "ZC_SCEGAME",
+      "ZI_SCEDIVISION",
+      "ZI_SCEGAME"
+    ],
+    "BASE": [
+      "ZI_SCEPIR"
+    ]
+  }
+}

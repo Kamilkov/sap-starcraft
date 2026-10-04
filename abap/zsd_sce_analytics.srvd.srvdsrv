@@ -1,0 +1,12 @@
+@EndUserText.label: 'StarCraft Enterprise Analytics'
+define service ZSD_SCE_ANALYTICS {
+  expose ZC_SCEMovementAnalysis as MovementAnalysis;
+  expose ZC_SCEGameVH           as GameVH;
+  expose ZC_SCEPlayerVH         as PlayerVH;
+  expose ZC_SCEMovementTypeVH   as MovementTypeVH;
+  expose ZC_SCELatestGameVH     as LatestGameVH;
+  expose ZC_SCERaceVH           as RaceVH;
+  expose ZC_SCECategoryVH       as CategoryVH;
+  expose ZC_SCEMaterialVH       as MaterialVH;
+  expose ZC_SCEScore            as Score;
+}

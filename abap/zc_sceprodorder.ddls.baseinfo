@@ -1,0 +1,21 @@
+{
+  "BASEINFO": {
+    "FROM": [
+      "ZI_SCEORDERVARIANCEMIN",
+      "ZI_SCEPRODORDER"
+    ],
+    "ASSOCIATED": [
+      "ZC_SCEDIVISION",
+      "ZC_SCEGAME",
+      "ZC_SCEMATERIAL",
+      "ZC_SCEPLANT",
+      "ZI_SCEDIVISION",
+      "ZI_SCEGAME",
+      "ZI_SCEMATERIAL",
+      "ZI_SCEPLANT"
+    ],
+    "BASE": [
+      "ZI_SCEPRODORDER"
+    ]
+  }
+}

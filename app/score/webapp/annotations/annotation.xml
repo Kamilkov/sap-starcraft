@@ -1,0 +1,214 @@
+<edmx:Edmx xmlns:edmx="http://docs.oasis-open.org/odata/ns/edmx" Version="4.0">
+    <edmx:Reference Uri="https://sap.github.io/odata-vocabularies/vocabularies/Common.xml">
+        <edmx:Include Namespace="com.sap.vocabularies.Common.v1" Alias="Common"/>
+    </edmx:Reference>
+    <edmx:Reference Uri="https://sap.github.io/odata-vocabularies/vocabularies/UI.xml">
+        <edmx:Include Namespace="com.sap.vocabularies.UI.v1" Alias="UI"/>
+    </edmx:Reference>
+    <edmx:Reference Uri="https://sap.github.io/odata-vocabularies/vocabularies/Communication.xml">
+        <edmx:Include Namespace="com.sap.vocabularies.Communication.v1" Alias="Communication"/>
+    </edmx:Reference>
+    <edmx:Reference Uri="/sap/opu/odata4/sap/zsb_sce_analytics_o4/srvd/sap/zsd_sce_analytics/0001/$metadata">
+        <edmx:Include Namespace="com.sap.gateway.srvd.zsd_sce_analytics.v0001" Alias="SAP__self"/>
+    </edmx:Reference>
+    <edmx:DataServices>
+        <Schema xmlns="http://docs.oasis-open.org/odata/ns/edm" Namespace="local">
+            <!-- KPI tags live here, not in CDS: on this release RAP writes @UI.kpi as SelectionVariantQualifier, which
+                 Fiori Elements V4 does not read (it reads SelectionVariant), and uppercases @UI.selectionVariant literals
+                 ('Yes' becomes 'YES', matching nothing). V4 tags ignore the filter bar: all three show the latest game. -->
+            <Annotations Target="SAP__self.ScoreType">
+                <Annotation Term="UI.SelectionVariant" Qualifier="LatestGameKpi">
+                    <Record Type="UI.SelectionVariantType">
+                        <PropertyValue Property="Text" String="Latest game"/>
+                        <PropertyValue Property="SelectOptions">
+                            <Collection>
+                                <Record Type="UI.SelectOptionType">
+                                    <PropertyValue Property="PropertyName" PropertyPath="LatestGame"/>
+                                    <PropertyValue Property="Ranges">
+                                        <Collection>
+                                            <Record Type="UI.SelectionRangeType">
+                                                <PropertyValue Property="Sign" EnumMember="UI.SelectionRangeSignType/I"/>
+                                                <PropertyValue Property="Option" EnumMember="UI.SelectionRangeOptionType/EQ"/>
+                                                <PropertyValue Property="Low" String="Yes"/>
+                                            </Record>
+                                        </Collection>
+                                    </PropertyValue>
+                                </Record>
+                            </Collection>
+                        </PropertyValue>
+                    </Record>
+                </Annotation>
+                <!-- KPI card charts override the CDS ones: the card groups by the chart's dimensions only, and SADL refuses
+                     to aggregate an amount without its currency in the grouping (found 2026-09-27: the cards stayed empty). -->
+                <Annotation Term="UI.Chart" Qualifier="KpiCollected">
+                    <Record Type="UI.ChartDefinitionType">
+                        <PropertyValue Property="Title" String="Collected"/>
+                        <PropertyValue Property="ChartType" EnumMember="UI.ChartType/Line"/>
+                        <PropertyValue Property="Dimensions">
+                            <Collection>
+                                <PropertyPath>GameMinute</PropertyPath>
+                                <PropertyPath>DivisionUUID</PropertyPath>
+                                <PropertyPath>MineralCurrency</PropertyPath>
+                            </Collection>
+                        </PropertyValue>
+                        <PropertyValue Property="DimensionAttributes">
+                            <Collection>
+                                <Record Type="UI.ChartDimensionAttributeType">
+                                    <PropertyValue Property="Dimension" PropertyPath="GameMinute"/>
+                                    <PropertyValue Property="Role" EnumMember="UI.ChartDimensionRoleType/Category"/>
+                                </Record>
+                                <Record Type="UI.ChartDimensionAttributeType">
+                                    <PropertyValue Property="Dimension" PropertyPath="DivisionUUID"/>
+                                    <PropertyValue Property="Role" EnumMember="UI.ChartDimensionRoleType/Series"/>
+                                </Record>
+                                <Record Type="UI.ChartDimensionAttributeType">
+                                    <PropertyValue Property="Dimension" PropertyPath="MineralCurrency"/>
+                                    <PropertyValue Property="Role" EnumMember="UI.ChartDimensionRoleType/Series"/>
+                                </Record>
+                            </Collection>
+                        </PropertyValue>
+                        <PropertyValue Property="Measures"><Collection><PropertyPath>Collected</PropertyPath></Collection></PropertyValue>
+                        <PropertyValue Property="MeasureAttributes">
+                            <Collection>
+                                <Record Type="UI.ChartMeasureAttributeType">
+                                    <PropertyValue Property="Measure" PropertyPath="Collected"/>
+                                    <PropertyValue Property="Role" EnumMember="UI.ChartMeasureRoleType/Axis1"/>
+                                </Record>
+                            </Collection>
+                        </PropertyValue>
+                    </Record>
+                </Annotation>
+                <Annotation Term="UI.Chart" Qualifier="KpiArmy">
+                    <Record Type="UI.ChartDefinitionType">
+                        <PropertyValue Property="Title" String="Army value"/>
+                        <PropertyValue Property="ChartType" EnumMember="UI.ChartType/Line"/>
+                        <PropertyValue Property="Dimensions">
+                            <Collection>
+                                <PropertyPath>GameMinute</PropertyPath>
+                                <PropertyPath>DivisionUUID</PropertyPath>
+                                <PropertyPath>MineralCurrency</PropertyPath>
+                            </Collection>
+                        </PropertyValue>
+                        <PropertyValue Property="DimensionAttributes">
+                            <Collection>
+                                <Record Type="UI.ChartDimensionAttributeType">
+                                    <PropertyValue Property="Dimension" PropertyPath="GameMinute"/>
+                                    <PropertyValue Property="Role" EnumMember="UI.ChartDimensionRoleType/Category"/>
+                                </Record>
+                                <Record Type="UI.ChartDimensionAttributeType">
+                                    <PropertyValue Property="Dimension" PropertyPath="DivisionUUID"/>
+                                    <PropertyValue Property="Role" EnumMember="UI.ChartDimensionRoleType/Series"/>
+                                </Record>
+                                <Record Type="UI.ChartDimensionAttributeType">
+                                    <PropertyValue Property="Dimension" PropertyPath="MineralCurrency"/>
+                                    <PropertyValue Property="Role" EnumMember="UI.ChartDimensionRoleType/Series"/>
+                                </Record>
+                            </Collection>
+                        </PropertyValue>
+                        <PropertyValue Property="Measures"><Collection><PropertyPath>ArmyValue</PropertyPath></Collection></PropertyValue>
+                        <PropertyValue Property="MeasureAttributes">
+                            <Collection>
+                                <Record Type="UI.ChartMeasureAttributeType">
+                                    <PropertyValue Property="Measure" PropertyPath="ArmyValue"/>
+                                    <PropertyValue Property="Role" EnumMember="UI.ChartMeasureRoleType/Axis1"/>
+                                </Record>
+                            </Collection>
+                        </PropertyValue>
+                    </Record>
+                </Annotation>
+                <Annotation Term="UI.Chart" Qualifier="KpiLost">
+                    <Record Type="UI.ChartDefinitionType">
+                        <PropertyValue Property="Title" String="Lost"/>
+                        <PropertyValue Property="ChartType" EnumMember="UI.ChartType/Line"/>
+                        <PropertyValue Property="Dimensions">
+                            <Collection>
+                                <PropertyPath>GameMinute</PropertyPath>
+                                <PropertyPath>DivisionUUID</PropertyPath>
+                                <PropertyPath>MineralCurrency</PropertyPath>
+                            </Collection>
+                        </PropertyValue>
+                        <PropertyValue Property="DimensionAttributes">
+                            <Collection>
+                                <Record Type="UI.ChartDimensionAttributeType">
+                                    <PropertyValue Property="Dimension" PropertyPath="GameMinute"/>
+                                    <PropertyValue Property="Role" EnumMember="UI.ChartDimensionRoleType/Category"/>
+                                </Record>
+                                <Record Type="UI.ChartDimensionAttributeType">
+                                    <PropertyValue Property="Dimension" PropertyPath="DivisionUUID"/>
+                                    <PropertyValue Property="Role" EnumMember="UI.ChartDimensionRoleType/Series"/>
+                                </Record>
+                                <Record Type="UI.ChartDimensionAttributeType">
+                                    <PropertyValue Property="Dimension" PropertyPath="MineralCurrency"/>
+                                    <PropertyValue Property="Role" EnumMember="UI.ChartDimensionRoleType/Series"/>
+                                </Record>
+                            </Collection>
+                        </PropertyValue>
+                        <PropertyValue Property="Measures"><Collection><PropertyPath>Lost</PropertyPath></Collection></PropertyValue>
+                        <PropertyValue Property="MeasureAttributes">
+                            <Collection>
+                                <Record Type="UI.ChartMeasureAttributeType">
+                                    <PropertyValue Property="Measure" PropertyPath="Lost"/>
+                                    <PropertyValue Property="Role" EnumMember="UI.ChartMeasureRoleType/Axis1"/>
+                                </Record>
+                            </Collection>
+                        </PropertyValue>
+                    </Record>
+                </Annotation>
+                <Annotation Term="UI.KPI" Qualifier="Collected">
+                    <Record Type="UI.KPIType">
+                        <PropertyValue Property="ID" String="ZSCE_KPI_COLLECTED"/>
+                        <PropertyValue Property="ShortDescription" String="Collected"/>
+                        <PropertyValue Property="SelectionVariant" Path="@UI.SelectionVariant#LatestGameKpi"/>
+                        <PropertyValue Property="DataPoint">
+                            <Record Type="UI.DataPointType">
+                                <PropertyValue Property="Title" String="Collected"/>
+                                <PropertyValue Property="Value" Path="Collected"/>
+                            </Record>
+                        </PropertyValue>
+                        <PropertyValue Property="Detail">
+                            <Record Type="UI.KPIDetailType">
+                                <PropertyValue Property="DefaultPresentationVariant" Path="@UI.PresentationVariant#KpiCollected"/>
+                            </Record>
+                        </PropertyValue>
+                    </Record>
+                </Annotation>
+                <Annotation Term="UI.KPI" Qualifier="ArmyPeak">
+                    <Record Type="UI.KPIType">
+                        <PropertyValue Property="ID" String="ZSCE_KPI_ARMY_PEAK"/>
+                        <PropertyValue Property="ShortDescription" String="Army peak"/>
+                        <PropertyValue Property="SelectionVariant" Path="@UI.SelectionVariant#LatestGameKpi"/>
+                        <PropertyValue Property="DataPoint">
+                            <Record Type="UI.DataPointType">
+                                <PropertyValue Property="Title" String="Army peak"/>
+                                <PropertyValue Property="Value" Path="ArmyValue"/>
+                            </Record>
+                        </PropertyValue>
+                        <PropertyValue Property="Detail">
+                            <Record Type="UI.KPIDetailType">
+                                <PropertyValue Property="DefaultPresentationVariant" Path="@UI.PresentationVariant#KpiArmy"/>
+                            </Record>
+                        </PropertyValue>
+                    </Record>
+                </Annotation>
+                <Annotation Term="UI.KPI" Qualifier="Lost">
+                    <Record Type="UI.KPIType">
+                        <PropertyValue Property="ID" String="ZSCE_KPI_LOST"/>
+                        <PropertyValue Property="ShortDescription" String="Lost"/>
+                        <PropertyValue Property="SelectionVariant" Path="@UI.SelectionVariant#LatestGameKpi"/>
+                        <PropertyValue Property="DataPoint">
+                            <Record Type="UI.DataPointType">
+                                <PropertyValue Property="Title" String="Lost"/>
+                                <PropertyValue Property="Value" Path="Lost"/>
+                            </Record>
+                        </PropertyValue>
+                        <PropertyValue Property="Detail">
+                            <Record Type="UI.KPIDetailType">
+                                <PropertyValue Property="DefaultPresentationVariant" Path="@UI.PresentationVariant#KpiLost"/>
+                            </Record>
+                        </PropertyValue>
+                    </Record>
+                </Annotation>
+            </Annotations>
+        </Schema>
+    </edmx:DataServices>
+</edmx:Edmx>

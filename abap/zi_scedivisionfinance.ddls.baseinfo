@@ -1,0 +1,10 @@
+{
+  "BASEINFO": {
+    "FROM": [
+      "ZI_SCEEVENTAMOUNT"
+    ],
+    "ASSOCIATED": [
+      "ZI_SCEDIVISION"
+    ]
+  }
+}

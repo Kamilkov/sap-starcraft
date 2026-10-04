@@ -1,0 +1,35 @@
+{
+  "BASEINFO": {
+    "FROM": [
+      "ZI_SCEDIVISION",
+      "ZI_SCEDIVISIONNETWORTH"
+    ],
+    "ASSOCIATED": [
+      "ZC_SCECOMPANY",
+      "ZC_SCEDIVISIONFINANCE",
+      "ZC_SCEEQUIPMENT",
+      "ZC_SCEEVENT",
+      "ZC_SCEGAME",
+      "ZC_SCEMAINTORDER",
+      "ZC_SCENOTIFICATION",
+      "ZC_SCEPIR",
+      "ZC_SCEPLANNEDORDER",
+      "ZC_SCEPLANT",
+      "ZC_SCEPLANTFINANCE",
+      "ZC_SCEPRODORDER",
+      "ZC_SCESERIALNUMBER",
+      "ZI_SCECOMPANY",
+      "ZI_SCEEVENT",
+      "ZI_SCEGAME",
+      "ZI_SCEMAINTORDER",
+      "ZI_SCENOTIFICATION",
+      "ZI_SCEPIR",
+      "ZI_SCEPLANNEDORDER",
+      "ZI_SCEPLANT",
+      "ZI_SCEPRODORDER"
+    ],
+    "BASE": [
+      "ZI_SCEDIVISION"
+    ]
+  }
+}

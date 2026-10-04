@@ -1,0 +1,12 @@
+{
+  "BASEINFO": {
+    "FROM": [
+      "ZI_SCEDIVISION",
+      "ZI_SCEPLANT",
+      "ZI_SCESERIALNUMBER"
+    ],
+    "ASSOCIATED": [
+      "ZC_SCEEVENT"
+    ]
+  }
+}

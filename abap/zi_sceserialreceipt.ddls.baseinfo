@@ -1,0 +1,8 @@
+{
+  "BASEINFO": {
+    "FROM": [
+      "ZI_SCESERIALFIRST",
+      "ZI_SCETAGGEDEVENT"
+    ]
+  }
+}

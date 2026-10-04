@@ -1,0 +1,1423 @@
+<?xml version="1.0" encoding="utf-8"?>
+<edmx:Edmx Version="4.0" xmlns:edmx="http://docs.oasis-open.org/odata/ns/edmx" xmlns="http://docs.oasis-open.org/odata/ns/edm">
+    <edmx:Reference Uri="/sap/opu/odata/IWFND/CATALOGSERVICE;v=2/Vocabularies(TechnicalName='%2FIWBEP%2FVOC_COMMUNICATION',Version='0001',SAP__Origin='LOCAL')/$value">
+        <edmx:Include Namespace="com.sap.vocabularies.Communication.v1" Alias="Communication"/>
+    </edmx:Reference>
+    <edmx:Reference Uri="/sap/opu/odata/IWFND/CATALOGSERVICE;v=2/Vocabularies(TechnicalName='%2FIWBEP%2FVOC_PERSONALDATA',Version='0001',SAP__Origin='LOCAL')/$value">
+        <edmx:Include Namespace="com.sap.vocabularies.PersonalData.v1" Alias="PersonalData"/>
+    </edmx:Reference>
+    <edmx:Reference Uri="/sap/opu/odata/IWFND/CATALOGSERVICE;v=2/Vocabularies(TechnicalName='%2FIWBEP%2FVOC_ANALYTICS',Version='0001',SAP__Origin='LOCAL')/$value">
+        <edmx:Include Namespace="com.sap.vocabularies.Analytics.v1" Alias="Analytics"/>
+    </edmx:Reference>
+    <edmx:Reference Uri="/sap/opu/odata/IWFND/CATALOGSERVICE;v=2/Vocabularies(TechnicalName='%2FIWBEP%2FVOC_AGGREGATION',Version='0001',SAP__Origin='LOCAL')/$value">
+        <edmx:Include Namespace="Org.OData.Aggregation.V1" Alias="SAP__aggregation"/>
+    </edmx:Reference>
+    <edmx:Reference Uri="/sap/opu/odata/IWFND/CATALOGSERVICE;v=2/Vocabularies(TechnicalName='%2FIWBEP%2FVOC_CAPABILITIES',Version='0001',SAP__Origin='LOCAL')/$value">
+        <edmx:Include Namespace="Org.OData.Capabilities.V1" Alias="SAP__capabilities"/>
+    </edmx:Reference>
+    <edmx:Reference Uri="/sap/opu/odata/IWFND/CATALOGSERVICE;v=2/Vocabularies(TechnicalName='%2FIWBEP%2FVOC_CODELIST',Version='0001',SAP__Origin='LOCAL')/$value">
+        <edmx:Include Namespace="com.sap.vocabularies.CodeList.v1" Alias="SAP__CodeList"/>
+    </edmx:Reference>
+    <edmx:Reference Uri="/sap/opu/odata/IWFND/CATALOGSERVICE;v=2/Vocabularies(TechnicalName='%2FIWBEP%2FVOC_COMMON',Version='0001',SAP__Origin='LOCAL')/$value">
+        <edmx:Include Namespace="com.sap.vocabularies.Common.v1" Alias="SAP__common"/>
+    </edmx:Reference>
+    <edmx:Reference Uri="/sap/opu/odata/IWFND/CATALOGSERVICE;v=2/Vocabularies(TechnicalName='%2FIWBEP%2FVOC_CORE',Version='0001',SAP__Origin='LOCAL')/$value">
+        <edmx:Include Namespace="Org.OData.Core.V1" Alias="SAP__core"/>
+    </edmx:Reference>
+    <edmx:Reference Uri="/sap/opu/odata/IWFND/CATALOGSERVICE;v=2/Vocabularies(TechnicalName='%2FIWBEP%2FVOC_HIERARCHY',Version='0001',SAP__Origin='LOCAL')/$value">
+        <edmx:Include Namespace="com.sap.vocabularies.Hierarchy.v1" Alias="SAP__hierarchy"/>
+    </edmx:Reference>
+    <edmx:Reference Uri="/sap/opu/odata/IWFND/CATALOGSERVICE;v=2/Vocabularies(TechnicalName='%2FIWBEP%2FVOC_HTML5',Version='0001',SAP__Origin='LOCAL')/$value">
+        <edmx:Include Namespace="com.sap.vocabularies.HTML5.v1" Alias="SAP__HTML5"/>
+    </edmx:Reference>
+    <edmx:Reference Uri="/sap/opu/odata/IWFND/CATALOGSERVICE;v=2/Vocabularies(TechnicalName='%2FIWBEP%2FVOC_MEASURES',Version='0001',SAP__Origin='LOCAL')/$value">
+        <edmx:Include Namespace="Org.OData.Measures.V1" Alias="SAP__measures"/>
+    </edmx:Reference>
+    <edmx:Reference Uri="/sap/opu/odata/IWFND/CATALOGSERVICE;v=2/Vocabularies(TechnicalName='%2FIWBEP%2FVOC_ODM',Version='0001',SAP__Origin='LOCAL')/$value">
+        <edmx:Include Namespace="com.sap.vocabularies.ODM.v1" Alias="SAP__ODM"/>
+    </edmx:Reference>
+    <edmx:Reference Uri="/sap/opu/odata/IWFND/CATALOGSERVICE;v=2/Vocabularies(TechnicalName='%2FIWBEP%2FVOC_PDF',Version='0001',SAP__Origin='LOCAL')/$value">
+        <edmx:Include Namespace="com.sap.vocabularies.PDF.v1" Alias="SAP__PDF"/>
+    </edmx:Reference>
+    <edmx:Reference Uri="/sap/opu/odata/IWFND/CATALOGSERVICE;v=2/Vocabularies(TechnicalName='%2FIWBEP%2FVOC_SESSION',Version='0001',SAP__Origin='LOCAL')/$value">
+        <edmx:Include Namespace="com.sap.vocabularies.Session.v1" Alias="SAP__session"/>
+    </edmx:Reference>
+    <edmx:Reference Uri="/sap/opu/odata/IWFND/CATALOGSERVICE;v=2/Vocabularies(TechnicalName='%2FIWBEP%2FVOC_UI',Version='0001',SAP__Origin='LOCAL')/$value">
+        <edmx:Include Namespace="com.sap.vocabularies.UI.v1" Alias="SAP__UI"/>
+    </edmx:Reference>
+    <edmx:Reference Uri="/sap/opu/odata/IWFND/CATALOGSERVICE;v=2/Vocabularies(TechnicalName='%2FIWBEP%2FVOC_VALIDATION',Version='0001',SAP__Origin='LOCAL')/$value">
+        <edmx:Include Namespace="Org.OData.Validation.V1" Alias="SAP__validation"/>
+    </edmx:Reference>
+    <edmx:DataServices>
+        <Schema Namespace="com.sap.gateway.srvd.zsd_sce_analytics.v0001" Alias="SAP__self">
+            <Annotation Term="SAP__core.SchemaVersion" String="1.0.0"/>
+            <EntityType Name="MovementTypeVHType">
+                <Key>
+                    <PropertyRef Name="MovementType"/>
+                </Key>
+                <Property Name="MovementType" Type="Edm.String" Nullable="false" MaxLength="3"/>
+                <Property Name="MovementTypeText" Type="Edm.String" Nullable="false" MaxLength="20"/>
+            </EntityType>
+            <EntityType Name="CategoryVHType">
+                <Key>
+                    <PropertyRef Name="Category"/>
+                </Key>
+                <Property Name="Category" Type="Edm.String" Nullable="false" MaxLength="10"/>
+            </EntityType>
+            <EntityType Name="LatestGameVHType">
+                <Key>
+                    <PropertyRef Name="LatestGame"/>
+                </Key>
+                <Property Name="LatestGame" Type="Edm.String" Nullable="false" MaxLength="3"/>
+            </EntityType>
+            <EntityType Name="PlayerVHType">
+                <Key>
+                    <PropertyRef Name="DivisionUUID"/>
+                </Key>
+                <Property Name="DivisionUUID" Type="Edm.Guid" Nullable="false"/>
+                <Property Name="PlayerName" Type="Edm.String" Nullable="false" MaxLength="40"/>
+                <Property Name="GameName" Type="Edm.String" Nullable="false" MaxLength="97"/>
+            </EntityType>
+            <EntityType Name="MovementAnalysisType">
+                <Key>
+                    <PropertyRef Name="EventUUID"/>
+                </Key>
+                <Property Name="EventUUID" Type="Edm.Guid" Nullable="false"/>
+                <Property Name="GameUUID" Type="Edm.Guid"/>
+                <Property Name="MapName" Type="Edm.String" Nullable="false" MaxLength="80"/>
+                <Property Name="GameName" Type="Edm.String" Nullable="false" MaxLength="97"/>
+                <Property Name="LatestGame" Type="Edm.String" Nullable="false" MaxLength="3"/>
+                <Property Name="DivisionUUID" Type="Edm.Guid"/>
+                <Property Name="PlayerName" Type="Edm.String" Nullable="false" MaxLength="40"/>
+                <Property Name="CompanyCode" Type="Edm.String" Nullable="false" MaxLength="4"/>
+                <Property Name="Race" Type="Edm.String" Nullable="false" MaxLength="10"/>
+                <Property Name="PlantCode" Type="Edm.String" Nullable="false" MaxLength="4"/>
+                <Property Name="GameSeconds" Type="Edm.Int32" Nullable="false"/>
+                <Property Name="GameMinute" Type="Edm.Int32" Nullable="false"/>
+                <Property Name="MovementType" Type="Edm.String" Nullable="false" MaxLength="3"/>
+                <Property Name="MovementTypeText" Type="Edm.String" Nullable="false" MaxLength="20"/>
+                <Property Name="Material" Type="Edm.String" Nullable="false" MaxLength="40"/>
+                <Property Name="Category" Type="Edm.String" Nullable="false" MaxLength="10"/>
+                <Property Name="EventSource" Type="Edm.String" Nullable="false" MaxLength="10"/>
+                <Property Name="Quantity" Type="Edm.Int32" Nullable="false"/>
+                <Property Name="MineralCurrency" Type="Edm.String" MaxLength="5"/>
+                <Property Name="Minerals" Type="Edm.Decimal" Precision="15"/>
+                <Property Name="GasCurrency" Type="Edm.String" MaxLength="5"/>
+                <Property Name="Gas" Type="Edm.Decimal" Precision="15"/>
+                <Property Name="ValueMin" Type="Edm.Decimal" Precision="15"/>
+            </EntityType>
+            <EntityType Name="ScoreType">
+                <Key>
+                    <PropertyRef Name="DivisionUUID"/>
+                    <PropertyRef Name="GameMinute"/>
+                </Key>
+                <Property Name="DivisionUUID" Type="Edm.Guid" Nullable="false"/>
+                <Property Name="GameMinute" Type="Edm.Int32" Nullable="false"/>
+                <Property Name="GameUUID" Type="Edm.Guid"/>
+                <Property Name="GameName" Type="Edm.String" Nullable="false" MaxLength="97"/>
+                <Property Name="LatestGame" Type="Edm.String" Nullable="false" MaxLength="3"/>
+                <Property Name="PlayerName" Type="Edm.String" Nullable="false" MaxLength="40"/>
+                <Property Name="CompanyCode" Type="Edm.String" Nullable="false" MaxLength="4"/>
+                <Property Name="Race" Type="Edm.String" Nullable="false" MaxLength="10"/>
+                <Property Name="MineralCurrency" Type="Edm.String" MaxLength="5"/>
+                <Property Name="GasCurrency" Type="Edm.String" MaxLength="5"/>
+                <Property Name="ArmyValue" Type="Edm.Decimal" Precision="15"/>
+                <Property Name="Workers" Type="Edm.Int32" Nullable="false"/>
+                <Property Name="BankMinerals" Type="Edm.Decimal" Precision="15"/>
+                <Property Name="BankGas" Type="Edm.Decimal" Precision="15"/>
+                <Property Name="Collected" Type="Edm.Decimal" Precision="15"/>
+                <Property Name="Lost" Type="Edm.Decimal" Precision="15"/>
+            </EntityType>
+            <EntityType Name="MaterialVHType">
+                <Key>
+                    <PropertyRef Name="Material"/>
+                </Key>
+                <Property Name="Material" Type="Edm.String" Nullable="false" MaxLength="40"/>
+                <Property Name="Category" Type="Edm.String" Nullable="false" MaxLength="10"/>
+            </EntityType>
+            <EntityType Name="RaceVHType">
+                <Key>
+                    <PropertyRef Name="CompanyCode"/>
+                </Key>
+                <Property Name="CompanyCode" Type="Edm.String" Nullable="false" MaxLength="4"/>
+                <Property Name="Race" Type="Edm.String" Nullable="false" MaxLength="10"/>
+            </EntityType>
+            <EntityType Name="GameVHType">
+                <Key>
+                    <PropertyRef Name="GameUUID"/>
+                </Key>
+                <Property Name="GameUUID" Type="Edm.Guid" Nullable="false"/>
+                <Property Name="GameName" Type="Edm.String" Nullable="false" MaxLength="97"/>
+                <Property Name="LatestGame" Type="Edm.String" Nullable="false" MaxLength="3"/>
+            </EntityType>
+            <EntityContainer Name="Container">
+                <EntitySet Name="CategoryVH" EntityType="com.sap.gateway.srvd.zsd_sce_analytics.v0001.CategoryVHType"/>
+                <EntitySet Name="GameVH" EntityType="com.sap.gateway.srvd.zsd_sce_analytics.v0001.GameVHType"/>
+                <EntitySet Name="LatestGameVH" EntityType="com.sap.gateway.srvd.zsd_sce_analytics.v0001.LatestGameVHType"/>
+                <EntitySet Name="MaterialVH" EntityType="com.sap.gateway.srvd.zsd_sce_analytics.v0001.MaterialVHType"/>
+                <EntitySet Name="MovementAnalysis" EntityType="com.sap.gateway.srvd.zsd_sce_analytics.v0001.MovementAnalysisType"/>
+                <EntitySet Name="MovementTypeVH" EntityType="com.sap.gateway.srvd.zsd_sce_analytics.v0001.MovementTypeVHType"/>
+                <EntitySet Name="PlayerVH" EntityType="com.sap.gateway.srvd.zsd_sce_analytics.v0001.PlayerVHType"/>
+                <EntitySet Name="RaceVH" EntityType="com.sap.gateway.srvd.zsd_sce_analytics.v0001.RaceVHType"/>
+                <EntitySet Name="Score" EntityType="com.sap.gateway.srvd.zsd_sce_analytics.v0001.ScoreType"/>
+            </EntityContainer>
+            <Annotations Target="SAP__self.MovementTypeVHType/MovementType">
+                <Annotation Term="SAP__common.Text" Path="MovementTypeText">
+                    <Annotation Term="SAP__UI.TextArrangement" EnumMember="SAP__UI.TextArrangementType/TextOnly"/>
+                </Annotation>
+            </Annotations>
+            <Annotations Target="SAP__self.MovementTypeVHType/MovementTypeText">
+                <Annotation Term="SAP__common.Label" String="Movement type"/>
+            </Annotations>
+            <Annotations Target="SAP__self.MovementTypeVHType">
+                <Annotation Term="SAP__common.Label" String="Movement type"/>
+            </Annotations>
+            <Annotations Target="SAP__self.Container/MovementTypeVH">
+                <Annotation Term="SAP__capabilities.SearchRestrictions">
+                    <Record>
+                        <PropertyValue Property="Searchable" Bool="false"/>
+                    </Record>
+                </Annotation>
+                <Annotation Term="SAP__capabilities.InsertRestrictions">
+                    <Record>
+                        <PropertyValue Property="Insertable" Bool="false"/>
+                    </Record>
+                </Annotation>
+                <Annotation Term="SAP__capabilities.DeleteRestrictions">
+                    <Record>
+                        <PropertyValue Property="Deletable" Bool="false"/>
+                    </Record>
+                </Annotation>
+                <Annotation Term="SAP__capabilities.UpdateRestrictions">
+                    <Record>
+                        <PropertyValue Property="Updatable" Bool="false"/>
+                        <PropertyValue Property="QueryOptions">
+                            <Record>
+                                <PropertyValue Property="SelectSupported" Bool="true"/>
+                            </Record>
+                        </PropertyValue>
+                    </Record>
+                </Annotation>
+            </Annotations>
+            <Annotations Target="SAP__self.CategoryVHType/Category">
+                <Annotation Term="SAP__common.Label" String="Category"/>
+            </Annotations>
+            <Annotations Target="SAP__self.CategoryVHType">
+                <Annotation Term="SAP__common.Label" String="Category"/>
+            </Annotations>
+            <Annotations Target="SAP__self.Container/CategoryVH">
+                <Annotation Term="SAP__capabilities.SearchRestrictions">
+                    <Record>
+                        <PropertyValue Property="Searchable" Bool="false"/>
+                    </Record>
+                </Annotation>
+                <Annotation Term="SAP__capabilities.InsertRestrictions">
+                    <Record>
+                        <PropertyValue Property="Insertable" Bool="false"/>
+                    </Record>
+                </Annotation>
+                <Annotation Term="SAP__capabilities.DeleteRestrictions">
+                    <Record>
+                        <PropertyValue Property="Deletable" Bool="false"/>
+                    </Record>
+                </Annotation>
+                <Annotation Term="SAP__capabilities.UpdateRestrictions">
+                    <Record>
+                        <PropertyValue Property="Updatable" Bool="false"/>
+                        <PropertyValue Property="QueryOptions">
+                            <Record>
+                                <PropertyValue Property="SelectSupported" Bool="true"/>
+                            </Record>
+                        </PropertyValue>
+                    </Record>
+                </Annotation>
+            </Annotations>
+            <Annotations Target="SAP__self.LatestGameVHType/LatestGame">
+                <Annotation Term="SAP__common.Label" String="Latest game"/>
+            </Annotations>
+            <Annotations Target="SAP__self.LatestGameVHType">
+                <Annotation Term="SAP__common.Label" String="Latest game"/>
+            </Annotations>
+            <Annotations Target="SAP__self.Container/LatestGameVH">
+                <Annotation Term="SAP__capabilities.SearchRestrictions">
+                    <Record>
+                        <PropertyValue Property="Searchable" Bool="false"/>
+                    </Record>
+                </Annotation>
+                <Annotation Term="SAP__capabilities.InsertRestrictions">
+                    <Record>
+                        <PropertyValue Property="Insertable" Bool="false"/>
+                    </Record>
+                </Annotation>
+                <Annotation Term="SAP__capabilities.DeleteRestrictions">
+                    <Record>
+                        <PropertyValue Property="Deletable" Bool="false"/>
+                    </Record>
+                </Annotation>
+                <Annotation Term="SAP__capabilities.UpdateRestrictions">
+                    <Record>
+                        <PropertyValue Property="Updatable" Bool="false"/>
+                        <PropertyValue Property="QueryOptions">
+                            <Record>
+                                <PropertyValue Property="SelectSupported" Bool="true"/>
+                            </Record>
+                        </PropertyValue>
+                    </Record>
+                </Annotation>
+            </Annotations>
+            <Annotations Target="SAP__self.PlayerVHType/DivisionUUID">
+                <Annotation Term="SAP__common.Label" String="Player in game"/>
+                <Annotation Term="SAP__common.Text" Path="PlayerName">
+                    <Annotation Term="SAP__UI.TextArrangement" EnumMember="SAP__UI.TextArrangementType/TextOnly"/>
+                </Annotation>
+                <Annotation Term="SAP__common.Heading" String="UUID"/>
+                <Annotation Term="SAP__common.QuickInfo" String="16 Byte UUID in 16 Bytes (Raw Format)"/>
+            </Annotations>
+            <Annotations Target="SAP__self.PlayerVHType/PlayerName">
+                <Annotation Term="SAP__common.Label" String="Player"/>
+            </Annotations>
+            <Annotations Target="SAP__self.PlayerVHType/GameName">
+                <Annotation Term="SAP__common.Label" String="Game"/>
+            </Annotations>
+            <Annotations Target="SAP__self.PlayerVHType">
+                <Annotation Term="SAP__common.Label" String="Player"/>
+            </Annotations>
+            <Annotations Target="SAP__self.Container/PlayerVH">
+                <Annotation Term="SAP__capabilities.SearchRestrictions">
+                    <Record>
+                        <PropertyValue Property="Searchable" Bool="false"/>
+                    </Record>
+                </Annotation>
+                <Annotation Term="SAP__capabilities.InsertRestrictions">
+                    <Record>
+                        <PropertyValue Property="Insertable" Bool="false"/>
+                    </Record>
+                </Annotation>
+                <Annotation Term="SAP__capabilities.DeleteRestrictions">
+                    <Record>
+                        <PropertyValue Property="Deletable" Bool="false"/>
+                    </Record>
+                </Annotation>
+                <Annotation Term="SAP__capabilities.UpdateRestrictions">
+                    <Record>
+                        <PropertyValue Property="Updatable" Bool="false"/>
+                        <PropertyValue Property="QueryOptions">
+                            <Record>
+                                <PropertyValue Property="SelectSupported" Bool="true"/>
+                            </Record>
+                        </PropertyValue>
+                    </Record>
+                </Annotation>
+            </Annotations>
+            <Annotations Target="SAP__self.MovementAnalysisType/GameUUID">
+                <Annotation Term="SAP__common.Label" String="Game"/>
+                <Annotation Term="SAP__common.Text" Path="GameName">
+                    <Annotation Term="SAP__UI.TextArrangement" EnumMember="SAP__UI.TextArrangementType/TextOnly"/>
+                </Annotation>
+                <Annotation Term="SAP__common.ValueListReferences">
+                    <Collection>
+                        <String>../../../../srvd_f4/sap/zc_scegamevh/0001;ps='srvd-zsd_sce_analytics-0001';va='com.sap.gateway.srvd.zsd_sce_analytics.v0001.et-zc_scemovementanalysis.gameuuid'/$metadata</String>
+                    </Collection>
+                </Annotation>
+                <Annotation Term="SAP__common.Heading" String="UUID"/>
+                <Annotation Term="SAP__common.QuickInfo" String="16 Byte UUID in 16 Bytes (Raw Format)"/>
+            </Annotations>
+            <Annotations Target="SAP__self.MovementAnalysisType/MapName">
+                <Annotation Term="SAP__common.Label" String="Map"/>
+            </Annotations>
+            <Annotations Target="SAP__self.MovementAnalysisType/GameName">
+                <Annotation Term="SAP__common.Label" String="Game name"/>
+                <Annotation Term="SAP__aggregation.ContextDefiningProperties">
+                    <Collection>
+                        <PropertyPath>GameUUID</PropertyPath>
+                    </Collection>
+                </Annotation>
+                <Annotation Term="SAP__UI.Hidden"/>
+            </Annotations>
+            <Annotations Target="SAP__self.MovementAnalysisType/LatestGame">
+                <Annotation Term="SAP__common.Label" String="Latest game"/>
+                <Annotation Term="SAP__common.ValueListReferences">
+                    <Collection>
+                        <String>../../../../srvd_f4/sap/zc_scelatestgamevh/0001;ps='srvd-zsd_sce_analytics-0001';va='com.sap.gateway.srvd.zsd_sce_analytics.v0001.et-zc_scemovementanalysis.latestgame'/$metadata</String>
+                    </Collection>
+                </Annotation>
+                <Annotation Term="SAP__common.ValueListWithFixedValues"/>
+                <Annotation Term="SAP__common.FilterDefaultValue" String="Yes"/>
+            </Annotations>
+            <Annotations Target="SAP__self.MovementAnalysisType/DivisionUUID">
+                <Annotation Term="SAP__common.Label" String="Player in game"/>
+                <Annotation Term="SAP__common.Text" Path="PlayerName">
+                    <Annotation Term="SAP__UI.TextArrangement" EnumMember="SAP__UI.TextArrangementType/TextOnly"/>
+                </Annotation>
+                <Annotation Term="SAP__common.ValueListReferences">
+                    <Collection>
+                        <String>../../../../srvd_f4/sap/zc_sceplayervh/0001;ps='srvd-zsd_sce_analytics-0001';va='com.sap.gateway.srvd.zsd_sce_analytics.v0001.et-zc_scemovementanalysis.divisionuuid'/$metadata</String>
+                    </Collection>
+                </Annotation>
+                <Annotation Term="SAP__common.Heading" String="UUID"/>
+                <Annotation Term="SAP__common.QuickInfo" String="16 Byte UUID in 16 Bytes (Raw Format)"/>
+            </Annotations>
+            <Annotations Target="SAP__self.MovementAnalysisType/PlayerName">
+                <Annotation Term="SAP__common.Label" String="Player"/>
+                <Annotation Term="SAP__aggregation.ContextDefiningProperties">
+                    <Collection>
+                        <PropertyPath>DivisionUUID</PropertyPath>
+                    </Collection>
+                </Annotation>
+                <Annotation Term="SAP__UI.Hidden"/>
+            </Annotations>
+            <Annotations Target="SAP__self.MovementAnalysisType/CompanyCode">
+                <Annotation Term="SAP__common.Label" String="Race"/>
+                <Annotation Term="SAP__common.Text" Path="Race">
+                    <Annotation Term="SAP__UI.TextArrangement" EnumMember="SAP__UI.TextArrangementType/TextOnly"/>
+                </Annotation>
+                <Annotation Term="SAP__common.ValueListReferences">
+                    <Collection>
+                        <String>../../../../srvd_f4/sap/zc_sceracevh/0001;ps='srvd-zsd_sce_analytics-0001';va='com.sap.gateway.srvd.zsd_sce_analytics.v0001.et-zc_scemovementanalysis.companycode'/$metadata</String>
+                    </Collection>
+                </Annotation>
+                <Annotation Term="SAP__common.ValueListWithFixedValues"/>
+            </Annotations>
+            <Annotations Target="SAP__self.MovementAnalysisType/Race">
+                <Annotation Term="SAP__common.Label" String="Race name"/>
+                <Annotation Term="SAP__aggregation.ContextDefiningProperties">
+                    <Collection>
+                        <PropertyPath>CompanyCode</PropertyPath>
+                    </Collection>
+                </Annotation>
+                <Annotation Term="SAP__UI.Hidden"/>
+            </Annotations>
+            <Annotations Target="SAP__self.MovementAnalysisType/PlantCode">
+                <Annotation Term="SAP__common.Label" String="Outpost"/>
+            </Annotations>
+            <Annotations Target="SAP__self.MovementAnalysisType/GameSeconds">
+                <Annotation Term="SAP__common.Label" String="Game second"/>
+                <Annotation Term="SAP__UI.Hidden"/>
+            </Annotations>
+            <Annotations Target="SAP__self.MovementAnalysisType/GameMinute">
+                <Annotation Term="SAP__common.Label" String="Minute"/>
+            </Annotations>
+            <Annotations Target="SAP__self.MovementAnalysisType/MovementType">
+                <Annotation Term="SAP__common.Label" String="Movement type"/>
+                <Annotation Term="SAP__common.Text" Path="MovementTypeText">
+                    <Annotation Term="SAP__UI.TextArrangement" EnumMember="SAP__UI.TextArrangementType/TextOnly"/>
+                </Annotation>
+                <Annotation Term="SAP__common.ValueListReferences">
+                    <Collection>
+                        <String>../../../../srvd_f4/sap/zc_scemovementtypevh/0001;ps='srvd-zsd_sce_analytics-0001';va='com.sap.gateway.srvd.zsd_sce_analytics.v0001.et-zc_scemovementanalysis.movementtype'/$metadata</String>
+                    </Collection>
+                </Annotation>
+                <Annotation Term="SAP__common.ValueListWithFixedValues"/>
+            </Annotations>
+            <Annotations Target="SAP__self.MovementAnalysisType/MovementTypeText">
+                <Annotation Term="SAP__common.Label" String="Movement type text"/>
+                <Annotation Term="SAP__aggregation.ContextDefiningProperties">
+                    <Collection>
+                        <PropertyPath>MovementType</PropertyPath>
+                    </Collection>
+                </Annotation>
+                <Annotation Term="SAP__UI.Hidden"/>
+            </Annotations>
+            <Annotations Target="SAP__self.MovementAnalysisType/Material">
+                <Annotation Term="SAP__common.Label" String="Material"/>
+                <Annotation Term="SAP__common.ValueListReferences">
+                    <Collection>
+                        <String>../../../../srvd_f4/sap/zc_scematerialvh/0001;ps='srvd-zsd_sce_analytics-0001';va='com.sap.gateway.srvd.zsd_sce_analytics.v0001.et-zc_scemovementanalysis.material'/$metadata</String>
+                    </Collection>
+                </Annotation>
+            </Annotations>
+            <Annotations Target="SAP__self.MovementAnalysisType/Category">
+                <Annotation Term="SAP__common.Label" String="Category"/>
+                <Annotation Term="SAP__common.ValueListReferences">
+                    <Collection>
+                        <String>../../../../srvd_f4/sap/zc_scecategoryvh/0001;ps='srvd-zsd_sce_analytics-0001';va='com.sap.gateway.srvd.zsd_sce_analytics.v0001.et-zc_scemovementanalysis.category'/$metadata</String>
+                    </Collection>
+                </Annotation>
+                <Annotation Term="SAP__common.ValueListWithFixedValues"/>
+            </Annotations>
+            <Annotations Target="SAP__self.MovementAnalysisType/EventSource">
+                <Annotation Term="SAP__common.Label" String="Source"/>
+            </Annotations>
+            <Annotations Target="SAP__self.MovementAnalysisType/Quantity">
+                <Annotation Term="SAP__common.Label" String="Quantity"/>
+            </Annotations>
+            <Annotations Target="SAP__self.MovementAnalysisType/MineralCurrency">
+                <Annotation Term="SAP__common.IsCurrency"/>
+                <Annotation Term="SAP__common.Label" String="Mineral currency"/>
+                <Annotation Term="SAP__common.IsUpperCase"/>
+                <Annotation Term="SAP__UI.Hidden"/>
+                <Annotation Term="SAP__common.Heading" String="Crcy"/>
+                <Annotation Term="SAP__common.QuickInfo" String="Currency Key"/>
+                <Annotation Term="SAP__common.DocumentationRef" String="urn:sap-com:documentation:key?=type=DE&amp;id=WAERS"/>
+            </Annotations>
+            <Annotations Target="SAP__self.MovementAnalysisType/Minerals">
+                <Annotation Term="SAP__common.Label" String="Minerals"/>
+                <Annotation Term="SAP__measures.ISOCurrency" Path="MineralCurrency"/>
+                <Annotation Term="SAP__aggregation.ContextDefiningProperties">
+                    <Collection>
+                        <PropertyPath>MineralCurrency</PropertyPath>
+                    </Collection>
+                </Annotation>
+            </Annotations>
+            <Annotations Target="SAP__self.MovementAnalysisType/GasCurrency">
+                <Annotation Term="SAP__common.IsCurrency"/>
+                <Annotation Term="SAP__common.Label" String="Gas currency"/>
+                <Annotation Term="SAP__common.IsUpperCase"/>
+                <Annotation Term="SAP__UI.Hidden"/>
+                <Annotation Term="SAP__common.Heading" String="Crcy"/>
+                <Annotation Term="SAP__common.QuickInfo" String="Currency Key"/>
+                <Annotation Term="SAP__common.DocumentationRef" String="urn:sap-com:documentation:key?=type=DE&amp;id=WAERS"/>
+            </Annotations>
+            <Annotations Target="SAP__self.MovementAnalysisType/Gas">
+                <Annotation Term="SAP__common.Label" String="Gas"/>
+                <Annotation Term="SAP__measures.ISOCurrency" Path="GasCurrency"/>
+                <Annotation Term="SAP__aggregation.ContextDefiningProperties">
+                    <Collection>
+                        <PropertyPath>GasCurrency</PropertyPath>
+                    </Collection>
+                </Annotation>
+            </Annotations>
+            <Annotations Target="SAP__self.MovementAnalysisType/ValueMin">
+                <Annotation Term="SAP__common.Label" String="Value (MIN)"/>
+                <Annotation Term="SAP__measures.ISOCurrency" Path="MineralCurrency"/>
+                <Annotation Term="SAP__aggregation.ContextDefiningProperties">
+                    <Collection>
+                        <PropertyPath>MineralCurrency</PropertyPath>
+                    </Collection>
+                </Annotation>
+            </Annotations>
+            <Annotations Target="SAP__self.MovementAnalysisType">
+                <Annotation Term="SAP__common.Label" String="Economy Analysis"/>
+                <Annotation Term="SAP__aggregation.ApplySupported">
+                    <Record>
+                        <PropertyValue Property="Transformations">
+                            <Collection>
+                                <String>filter</String>
+                                <String>identity</String>
+                                <String>orderby</String>
+                                <String>skip</String>
+                                <String>top</String>
+                                <String>groupby</String>
+                                <String>aggregate</String>
+                                <String>concat</String>
+                            </Collection>
+                        </PropertyValue>
+                        <PropertyValue Property="GroupableProperties">
+                            <Collection>
+                                <PropertyPath>Category</PropertyPath>
+                                <PropertyPath>CompanyCode</PropertyPath>
+                                <PropertyPath>DivisionUUID</PropertyPath>
+                                <PropertyPath>EventSource</PropertyPath>
+                                <PropertyPath>EventUUID</PropertyPath>
+                                <PropertyPath>GameMinute</PropertyPath>
+                                <PropertyPath>GameName</PropertyPath>
+                                <PropertyPath>GameSeconds</PropertyPath>
+                                <PropertyPath>GameUUID</PropertyPath>
+                                <PropertyPath>GasCurrency</PropertyPath>
+                                <PropertyPath>LatestGame</PropertyPath>
+                                <PropertyPath>MapName</PropertyPath>
+                                <PropertyPath>Material</PropertyPath>
+                                <PropertyPath>MineralCurrency</PropertyPath>
+                                <PropertyPath>MovementType</PropertyPath>
+                                <PropertyPath>MovementTypeText</PropertyPath>
+                                <PropertyPath>PlantCode</PropertyPath>
+                                <PropertyPath>PlayerName</PropertyPath>
+                                <PropertyPath>Race</PropertyPath>
+                            </Collection>
+                        </PropertyValue>
+                    </Record>
+                </Annotation>
+                <Annotation Term="SAP__UI.Chart" Qualifier="EconomyPerMinute">
+                    <Record Type="SAP__UI.ChartDefinitionType">
+                        <PropertyValue Property="Title" String="Economy per minute"/>
+                        <PropertyValue Property="ChartType" EnumMember="SAP__UI.ChartType/ColumnStacked"/>
+                        <PropertyValue Property="Dimensions">
+                            <Collection>
+                                <PropertyPath>MovementType</PropertyPath>
+                                <PropertyPath>GameMinute</PropertyPath>
+                            </Collection>
+                        </PropertyValue>
+                        <PropertyValue Property="DimensionAttributes">
+                            <Collection>
+                                <Record Type="SAP__UI.ChartDimensionAttributeType">
+                                    <PropertyValue Property="Dimension" PropertyPath="MovementType"/>
+                                    <PropertyValue Property="Role" EnumMember="SAP__UI.ChartDimensionRoleType/Series"/>
+                                </Record>
+                                <Record Type="SAP__UI.ChartDimensionAttributeType">
+                                    <PropertyValue Property="Dimension" PropertyPath="GameMinute"/>
+                                    <PropertyValue Property="Role" EnumMember="SAP__UI.ChartDimensionRoleType/Category"/>
+                                </Record>
+                            </Collection>
+                        </PropertyValue>
+                        <PropertyValue Property="Measures">
+                            <Collection>
+                                <PropertyPath>ValueMin</PropertyPath>
+                            </Collection>
+                        </PropertyValue>
+                        <PropertyValue Property="MeasureAttributes">
+                            <Collection>
+                                <Record Type="SAP__UI.ChartMeasureAttributeType">
+                                    <PropertyValue Property="Measure" PropertyPath="ValueMin"/>
+                                    <PropertyValue Property="Role" EnumMember="SAP__UI.ChartMeasureRoleType/Axis1"/>
+                                </Record>
+                            </Collection>
+                        </PropertyValue>
+                    </Record>
+                </Annotation>
+                <Annotation Term="SAP__UI.HeaderInfo">
+                    <Record>
+                        <PropertyValue Property="TypeName" String="Goods Movement"/>
+                        <PropertyValue Property="TypeNamePlural" String="Goods Movements"/>
+                    </Record>
+                </Annotation>
+                <Annotation Term="SAP__UI.LineItem">
+                    <Collection>
+                        <Record Type="SAP__UI.DataField">
+                            <PropertyValue Property="Value" Path="GameUUID"/>
+                        </Record>
+                        <Record Type="SAP__UI.DataField">
+                            <PropertyValue Property="Value" Path="DivisionUUID"/>
+                        </Record>
+                        <Record Type="SAP__UI.DataField">
+                            <PropertyValue Property="Value" Path="GameMinute"/>
+                        </Record>
+                        <Record Type="SAP__UI.DataField">
+                            <PropertyValue Property="Value" Path="MovementType"/>
+                        </Record>
+                        <Record Type="SAP__UI.DataField">
+                            <PropertyValue Property="Value" Path="Material"/>
+                        </Record>
+                        <Record Type="SAP__UI.DataField">
+                            <PropertyValue Property="Value" Path="Category"/>
+                        </Record>
+                        <Record Type="SAP__UI.DataField">
+                            <PropertyValue Property="Value" Path="Quantity"/>
+                        </Record>
+                        <Record Type="SAP__UI.DataField">
+                            <PropertyValue Property="Value" Path="Minerals"/>
+                        </Record>
+                        <Record Type="SAP__UI.DataField">
+                            <PropertyValue Property="Value" Path="Gas"/>
+                        </Record>
+                        <Record Type="SAP__UI.DataField">
+                            <PropertyValue Property="Value" Path="ValueMin"/>
+                        </Record>
+                    </Collection>
+                </Annotation>
+                <Annotation Term="SAP__UI.PresentationVariant">
+                    <Record>
+                        <PropertyValue Property="SortOrder">
+                            <Collection>
+                                <Record Type="SAP__common.SortOrderType">
+                                    <PropertyValue Property="Property" PropertyPath="GameSeconds"/>
+                                    <PropertyValue Property="Descending" Bool="false"/>
+                                </Record>
+                            </Collection>
+                        </PropertyValue>
+                        <PropertyValue Property="Visualizations">
+                            <Collection>
+                                <AnnotationPath>@SAP__UI.LineItem</AnnotationPath>
+                                <AnnotationPath>@SAP__UI.Chart#EconomyPerMinute</AnnotationPath>
+                            </Collection>
+                        </PropertyValue>
+                    </Record>
+                </Annotation>
+                <Annotation Term="SAP__UI.SelectionFields">
+                    <Collection>
+                        <PropertyPath>LatestGame</PropertyPath>
+                        <PropertyPath>GameUUID</PropertyPath>
+                        <PropertyPath>DivisionUUID</PropertyPath>
+                        <PropertyPath>CompanyCode</PropertyPath>
+                        <PropertyPath>MovementType</PropertyPath>
+                        <PropertyPath>Category</PropertyPath>
+                        <PropertyPath>Material</PropertyPath>
+                    </Collection>
+                </Annotation>
+                <Annotation Term="SAP__aggregation.CustomAggregate" Qualifier="Quantity" String="Edm.Int32"/>
+                <Annotation Term="SAP__aggregation.CustomAggregate" Qualifier="MineralCurrency" String="Edm.String"/>
+                <Annotation Term="SAP__aggregation.CustomAggregate" Qualifier="Minerals" String="Edm.Decimal"/>
+                <Annotation Term="SAP__aggregation.CustomAggregate" Qualifier="GasCurrency" String="Edm.String"/>
+                <Annotation Term="SAP__aggregation.CustomAggregate" Qualifier="Gas" String="Edm.Decimal"/>
+                <Annotation Term="SAP__aggregation.CustomAggregate" Qualifier="ValueMin" String="Edm.Decimal"/>
+            </Annotations>
+            <Annotations Target="SAP__self.Container/MovementAnalysis">
+                <Annotation Term="SAP__capabilities.SearchRestrictions">
+                    <Record>
+                        <PropertyValue Property="Searchable" Bool="false"/>
+                    </Record>
+                </Annotation>
+                <Annotation Term="SAP__capabilities.FilterRestrictions">
+                    <Record>
+                        <PropertyValue Property="Filterable" Bool="true"/>
+                        <PropertyValue Property="FilterExpressionRestrictions">
+                            <Collection>
+                                <Record>
+                                    <PropertyValue Property="Property" PropertyPath="LatestGame"/>
+                                    <PropertyValue Property="AllowedExpressions" String="SingleValue"/>
+                                </Record>
+                            </Collection>
+                        </PropertyValue>
+                    </Record>
+                </Annotation>
+                <Annotation Term="SAP__capabilities.InsertRestrictions">
+                    <Record>
+                        <PropertyValue Property="Insertable" Bool="false"/>
+                    </Record>
+                </Annotation>
+                <Annotation Term="SAP__capabilities.DeleteRestrictions">
+                    <Record>
+                        <PropertyValue Property="Deletable" Bool="false"/>
+                    </Record>
+                </Annotation>
+                <Annotation Term="SAP__capabilities.UpdateRestrictions">
+                    <Record>
+                        <PropertyValue Property="Updatable" Bool="false"/>
+                        <PropertyValue Property="QueryOptions">
+                            <Record>
+                                <PropertyValue Property="SelectSupported" Bool="true"/>
+                            </Record>
+                        </PropertyValue>
+                    </Record>
+                </Annotation>
+            </Annotations>
+            <Annotations Target="SAP__self.Container">
+                <Annotation Term="SAP__CodeList.CurrencyCodes">
+                    <Record>
+                        <PropertyValue Property="Url" String="../../../../default/iwbep/common/0001/$metadata"/>
+                        <PropertyValue Property="CollectionPath" String="Currencies"/>
+                    </Record>
+                </Annotation>
+                <Annotation Term="SAP__common.ApplyMultiUnitBehaviorForSortingAndFiltering" Bool="true"/>
+                <Annotation Term="SAP__capabilities.FilterFunctions">
+                    <Collection>
+                        <String>eq</String>
+                        <String>ne</String>
+                        <String>gt</String>
+                        <String>ge</String>
+                        <String>lt</String>
+                        <String>le</String>
+                        <String>and</String>
+                        <String>or</String>
+                        <String>contains</String>
+                        <String>startswith</String>
+                        <String>endswith</String>
+                        <String>any</String>
+                        <String>all</String>
+                    </Collection>
+                </Annotation>
+                <Annotation Term="SAP__capabilities.SupportedFormats">
+                    <Collection>
+                        <String>application/json</String>
+                        <String>application/pdf</String>
+                    </Collection>
+                </Annotation>
+                <Annotation Term="SAP__PDF.Features">
+                    <Record>
+                        <PropertyValue Property="DocumentDescriptionReference" String="../../../../default/iwbep/common/0001/$metadata"/>
+                        <PropertyValue Property="DocumentDescriptionCollection" String="MyDocumentDescriptions"/>
+                        <PropertyValue Property="ArchiveFormat" Bool="true"/>
+                        <PropertyValue Property="Border" Bool="true"/>
+                        <PropertyValue Property="CoverPage" Bool="true"/>
+                        <PropertyValue Property="FitToPage" Bool="true"/>
+                        <PropertyValue Property="FontName" Bool="true"/>
+                        <PropertyValue Property="FontSize" Bool="true"/>
+                        <PropertyValue Property="HeaderFooter" Bool="true"/>
+                        <PropertyValue Property="IANATimezoneFormat" Bool="true"/>
+                        <PropertyValue Property="Margin" Bool="true"/>
+                        <PropertyValue Property="Padding" Bool="true"/>
+                        <PropertyValue Property="ResultSizeDefault" Int="20000"/>
+                        <PropertyValue Property="ResultSizeMaximum" Int="20000"/>
+                        <PropertyValue Property="Signature" Bool="true"/>
+                        <PropertyValue Property="TextDirectionLayout" Bool="true"/>
+                        <PropertyValue Property="Treeview" Bool="true"/>
+                        <PropertyValue Property="UploadToFileShare" Bool="true"/>
+                    </Record>
+                </Annotation>
+                <Annotation Term="SAP__capabilities.KeyAsSegmentSupported"/>
+                <Annotation Term="SAP__capabilities.AsynchronousRequestsSupported"/>
+            </Annotations>
+            <Annotations Target="SAP__self.ScoreType/DivisionUUID">
+                <Annotation Term="SAP__common.Label" String="Player in game"/>
+                <Annotation Term="SAP__common.Text" Path="PlayerName">
+                    <Annotation Term="SAP__UI.TextArrangement" EnumMember="SAP__UI.TextArrangementType/TextOnly"/>
+                </Annotation>
+                <Annotation Term="SAP__common.ValueListReferences">
+                    <Collection>
+                        <String>../../../../srvd_f4/sap/zc_sceplayervh/0001;ps='srvd-zsd_sce_analytics-0001';va='com.sap.gateway.srvd.zsd_sce_analytics.v0001.et-zc_scescore.divisionuuid'/$metadata</String>
+                    </Collection>
+                </Annotation>
+                <Annotation Term="SAP__common.Heading" String="UUID"/>
+                <Annotation Term="SAP__common.QuickInfo" String="16 Byte UUID in 16 Bytes (Raw Format)"/>
+            </Annotations>
+            <Annotations Target="SAP__self.ScoreType/GameMinute">
+                <Annotation Term="SAP__common.Label" String="Minute"/>
+            </Annotations>
+            <Annotations Target="SAP__self.ScoreType/GameUUID">
+                <Annotation Term="SAP__common.Label" String="Game"/>
+                <Annotation Term="SAP__common.Text" Path="GameName">
+                    <Annotation Term="SAP__UI.TextArrangement" EnumMember="SAP__UI.TextArrangementType/TextOnly"/>
+                </Annotation>
+                <Annotation Term="SAP__common.ValueListReferences">
+                    <Collection>
+                        <String>../../../../srvd_f4/sap/zc_scegamevh/0001;ps='srvd-zsd_sce_analytics-0001';va='com.sap.gateway.srvd.zsd_sce_analytics.v0001.et-zc_scescore.gameuuid'/$metadata</String>
+                    </Collection>
+                </Annotation>
+                <Annotation Term="SAP__common.Heading" String="UUID"/>
+                <Annotation Term="SAP__common.QuickInfo" String="16 Byte UUID in 16 Bytes (Raw Format)"/>
+            </Annotations>
+            <Annotations Target="SAP__self.ScoreType/GameName">
+                <Annotation Term="SAP__common.Label" String="Game name"/>
+                <Annotation Term="SAP__aggregation.ContextDefiningProperties">
+                    <Collection>
+                        <PropertyPath>GameUUID</PropertyPath>
+                    </Collection>
+                </Annotation>
+                <Annotation Term="SAP__UI.Hidden"/>
+            </Annotations>
+            <Annotations Target="SAP__self.ScoreType/LatestGame">
+                <Annotation Term="SAP__common.Label" String="Latest game"/>
+                <Annotation Term="SAP__common.ValueListReferences">
+                    <Collection>
+                        <String>../../../../srvd_f4/sap/zc_scelatestgamevh/0001;ps='srvd-zsd_sce_analytics-0001';va='com.sap.gateway.srvd.zsd_sce_analytics.v0001.et-zc_scescore.latestgame'/$metadata</String>
+                    </Collection>
+                </Annotation>
+                <Annotation Term="SAP__common.ValueListWithFixedValues"/>
+                <Annotation Term="SAP__common.FilterDefaultValue" String="Yes"/>
+            </Annotations>
+            <Annotations Target="SAP__self.ScoreType/PlayerName">
+                <Annotation Term="SAP__common.Label" String="Player"/>
+                <Annotation Term="SAP__aggregation.ContextDefiningProperties">
+                    <Collection>
+                        <PropertyPath>DivisionUUID</PropertyPath>
+                    </Collection>
+                </Annotation>
+                <Annotation Term="SAP__UI.Hidden"/>
+            </Annotations>
+            <Annotations Target="SAP__self.ScoreType/CompanyCode">
+                <Annotation Term="SAP__common.Label" String="Race"/>
+                <Annotation Term="SAP__common.Text" Path="Race">
+                    <Annotation Term="SAP__UI.TextArrangement" EnumMember="SAP__UI.TextArrangementType/TextOnly"/>
+                </Annotation>
+                <Annotation Term="SAP__common.ValueListReferences">
+                    <Collection>
+                        <String>../../../../srvd_f4/sap/zc_sceracevh/0001;ps='srvd-zsd_sce_analytics-0001';va='com.sap.gateway.srvd.zsd_sce_analytics.v0001.et-zc_scescore.companycode'/$metadata</String>
+                    </Collection>
+                </Annotation>
+                <Annotation Term="SAP__common.ValueListWithFixedValues"/>
+            </Annotations>
+            <Annotations Target="SAP__self.ScoreType/Race">
+                <Annotation Term="SAP__common.Label" String="Race name"/>
+                <Annotation Term="SAP__aggregation.ContextDefiningProperties">
+                    <Collection>
+                        <PropertyPath>CompanyCode</PropertyPath>
+                    </Collection>
+                </Annotation>
+                <Annotation Term="SAP__UI.Hidden"/>
+            </Annotations>
+            <Annotations Target="SAP__self.ScoreType/MineralCurrency">
+                <Annotation Term="SAP__common.IsCurrency"/>
+                <Annotation Term="SAP__common.Label" String="Mineral currency"/>
+                <Annotation Term="SAP__common.IsUpperCase"/>
+                <Annotation Term="SAP__UI.Hidden"/>
+                <Annotation Term="SAP__common.Heading" String="Crcy"/>
+                <Annotation Term="SAP__common.QuickInfo" String="Currency Key"/>
+                <Annotation Term="SAP__common.DocumentationRef" String="urn:sap-com:documentation:key?=type=DE&amp;id=WAERS"/>
+            </Annotations>
+            <Annotations Target="SAP__self.ScoreType/GasCurrency">
+                <Annotation Term="SAP__common.IsCurrency"/>
+                <Annotation Term="SAP__common.Label" String="Gas currency"/>
+                <Annotation Term="SAP__common.IsUpperCase"/>
+                <Annotation Term="SAP__UI.Hidden"/>
+                <Annotation Term="SAP__common.Heading" String="Crcy"/>
+                <Annotation Term="SAP__common.QuickInfo" String="Currency Key"/>
+                <Annotation Term="SAP__common.DocumentationRef" String="urn:sap-com:documentation:key?=type=DE&amp;id=WAERS"/>
+            </Annotations>
+            <Annotations Target="SAP__self.ScoreType/ArmyValue">
+                <Annotation Term="SAP__common.Label" String="Army value"/>
+                <Annotation Term="SAP__measures.ISOCurrency" Path="MineralCurrency"/>
+                <Annotation Term="SAP__aggregation.ContextDefiningProperties">
+                    <Collection>
+                        <PropertyPath>MineralCurrency</PropertyPath>
+                    </Collection>
+                </Annotation>
+            </Annotations>
+            <Annotations Target="SAP__self.ScoreType/Workers">
+                <Annotation Term="SAP__common.Label" String="Workers"/>
+            </Annotations>
+            <Annotations Target="SAP__self.ScoreType/BankMinerals">
+                <Annotation Term="SAP__common.Label" String="Bank minerals"/>
+                <Annotation Term="SAP__measures.ISOCurrency" Path="MineralCurrency"/>
+                <Annotation Term="SAP__aggregation.ContextDefiningProperties">
+                    <Collection>
+                        <PropertyPath>MineralCurrency</PropertyPath>
+                    </Collection>
+                </Annotation>
+            </Annotations>
+            <Annotations Target="SAP__self.ScoreType/BankGas">
+                <Annotation Term="SAP__common.Label" String="Bank gas"/>
+                <Annotation Term="SAP__measures.ISOCurrency" Path="GasCurrency"/>
+                <Annotation Term="SAP__aggregation.ContextDefiningProperties">
+                    <Collection>
+                        <PropertyPath>GasCurrency</PropertyPath>
+                    </Collection>
+                </Annotation>
+            </Annotations>
+            <Annotations Target="SAP__self.ScoreType/Collected">
+                <Annotation Term="SAP__common.Label" String="Collected"/>
+                <Annotation Term="SAP__measures.ISOCurrency" Path="MineralCurrency"/>
+                <Annotation Term="SAP__aggregation.ContextDefiningProperties">
+                    <Collection>
+                        <PropertyPath>MineralCurrency</PropertyPath>
+                    </Collection>
+                </Annotation>
+            </Annotations>
+            <Annotations Target="SAP__self.ScoreType/Lost">
+                <Annotation Term="SAP__common.Label" String="Lost"/>
+                <Annotation Term="SAP__measures.ISOCurrency" Path="MineralCurrency"/>
+                <Annotation Term="SAP__aggregation.ContextDefiningProperties">
+                    <Collection>
+                        <PropertyPath>MineralCurrency</PropertyPath>
+                    </Collection>
+                </Annotation>
+            </Annotations>
+            <Annotations Target="SAP__self.ScoreType">
+                <Annotation Term="SAP__common.Label" String="Score over time"/>
+                <Annotation Term="SAP__aggregation.ApplySupported">
+                    <Record>
+                        <PropertyValue Property="Transformations">
+                            <Collection>
+                                <String>filter</String>
+                                <String>identity</String>
+                                <String>orderby</String>
+                                <String>skip</String>
+                                <String>top</String>
+                                <String>groupby</String>
+                                <String>aggregate</String>
+                                <String>concat</String>
+                            </Collection>
+                        </PropertyValue>
+                        <PropertyValue Property="GroupableProperties">
+                            <Collection>
+                                <PropertyPath>CompanyCode</PropertyPath>
+                                <PropertyPath>DivisionUUID</PropertyPath>
+                                <PropertyPath>GameMinute</PropertyPath>
+                                <PropertyPath>GameName</PropertyPath>
+                                <PropertyPath>GameUUID</PropertyPath>
+                                <PropertyPath>GasCurrency</PropertyPath>
+                                <PropertyPath>LatestGame</PropertyPath>
+                                <PropertyPath>MineralCurrency</PropertyPath>
+                                <PropertyPath>PlayerName</PropertyPath>
+                                <PropertyPath>Race</PropertyPath>
+                            </Collection>
+                        </PropertyValue>
+                    </Record>
+                </Annotation>
+                <Annotation Term="SAP__UI.Chart" Qualifier="KpiLost">
+                    <Record Type="SAP__UI.ChartDefinitionType">
+                        <PropertyValue Property="Title" String="Lost"/>
+                        <PropertyValue Property="ChartType" EnumMember="SAP__UI.ChartType/Line"/>
+                        <PropertyValue Property="Dimensions">
+                            <Collection>
+                                <PropertyPath>GameMinute</PropertyPath>
+                            </Collection>
+                        </PropertyValue>
+                        <PropertyValue Property="DimensionAttributes">
+                            <Collection>
+                                <Record Type="SAP__UI.ChartDimensionAttributeType">
+                                    <PropertyValue Property="Dimension" PropertyPath="GameMinute"/>
+                                    <PropertyValue Property="Role" EnumMember="SAP__UI.ChartDimensionRoleType/Category"/>
+                                </Record>
+                            </Collection>
+                        </PropertyValue>
+                        <PropertyValue Property="Measures">
+                            <Collection>
+                                <PropertyPath>Lost</PropertyPath>
+                            </Collection>
+                        </PropertyValue>
+                        <PropertyValue Property="MeasureAttributes">
+                            <Collection>
+                                <Record Type="SAP__UI.ChartMeasureAttributeType">
+                                    <PropertyValue Property="Measure" PropertyPath="Lost"/>
+                                    <PropertyValue Property="Role" EnumMember="SAP__UI.ChartMeasureRoleType/Axis1"/>
+                                </Record>
+                            </Collection>
+                        </PropertyValue>
+                    </Record>
+                </Annotation>
+                <Annotation Term="SAP__UI.Chart" Qualifier="KpiArmy">
+                    <Record Type="SAP__UI.ChartDefinitionType">
+                        <PropertyValue Property="Title" String="Army value"/>
+                        <PropertyValue Property="ChartType" EnumMember="SAP__UI.ChartType/Line"/>
+                        <PropertyValue Property="Dimensions">
+                            <Collection>
+                                <PropertyPath>GameMinute</PropertyPath>
+                            </Collection>
+                        </PropertyValue>
+                        <PropertyValue Property="DimensionAttributes">
+                            <Collection>
+                                <Record Type="SAP__UI.ChartDimensionAttributeType">
+                                    <PropertyValue Property="Dimension" PropertyPath="GameMinute"/>
+                                    <PropertyValue Property="Role" EnumMember="SAP__UI.ChartDimensionRoleType/Category"/>
+                                </Record>
+                            </Collection>
+                        </PropertyValue>
+                        <PropertyValue Property="Measures">
+                            <Collection>
+                                <PropertyPath>ArmyValue</PropertyPath>
+                            </Collection>
+                        </PropertyValue>
+                        <PropertyValue Property="MeasureAttributes">
+                            <Collection>
+                                <Record Type="SAP__UI.ChartMeasureAttributeType">
+                                    <PropertyValue Property="Measure" PropertyPath="ArmyValue"/>
+                                    <PropertyValue Property="Role" EnumMember="SAP__UI.ChartMeasureRoleType/Axis1"/>
+                                </Record>
+                            </Collection>
+                        </PropertyValue>
+                    </Record>
+                </Annotation>
+                <Annotation Term="SAP__UI.Chart" Qualifier="KpiCollected">
+                    <Record Type="SAP__UI.ChartDefinitionType">
+                        <PropertyValue Property="Title" String="Collected"/>
+                        <PropertyValue Property="ChartType" EnumMember="SAP__UI.ChartType/Line"/>
+                        <PropertyValue Property="Dimensions">
+                            <Collection>
+                                <PropertyPath>GameMinute</PropertyPath>
+                            </Collection>
+                        </PropertyValue>
+                        <PropertyValue Property="DimensionAttributes">
+                            <Collection>
+                                <Record Type="SAP__UI.ChartDimensionAttributeType">
+                                    <PropertyValue Property="Dimension" PropertyPath="GameMinute"/>
+                                    <PropertyValue Property="Role" EnumMember="SAP__UI.ChartDimensionRoleType/Category"/>
+                                </Record>
+                            </Collection>
+                        </PropertyValue>
+                        <PropertyValue Property="Measures">
+                            <Collection>
+                                <PropertyPath>Collected</PropertyPath>
+                            </Collection>
+                        </PropertyValue>
+                        <PropertyValue Property="MeasureAttributes">
+                            <Collection>
+                                <Record Type="SAP__UI.ChartMeasureAttributeType">
+                                    <PropertyValue Property="Measure" PropertyPath="Collected"/>
+                                    <PropertyValue Property="Role" EnumMember="SAP__UI.ChartMeasureRoleType/Axis1"/>
+                                </Record>
+                            </Collection>
+                        </PropertyValue>
+                    </Record>
+                </Annotation>
+                <Annotation Term="SAP__UI.Chart" Qualifier="ArmyAndLosses">
+                    <Record Type="SAP__UI.ChartDefinitionType">
+                        <PropertyValue Property="Title" String="Army and losses"/>
+                        <PropertyValue Property="ChartType" EnumMember="SAP__UI.ChartType/Line"/>
+                        <PropertyValue Property="Dimensions">
+                            <Collection>
+                                <PropertyPath>GameUUID</PropertyPath>
+                                <PropertyPath>GameMinute</PropertyPath>
+                            </Collection>
+                        </PropertyValue>
+                        <PropertyValue Property="DimensionAttributes">
+                            <Collection>
+                                <Record Type="SAP__UI.ChartDimensionAttributeType">
+                                    <PropertyValue Property="Dimension" PropertyPath="GameUUID"/>
+                                    <PropertyValue Property="Role" EnumMember="SAP__UI.ChartDimensionRoleType/Series"/>
+                                </Record>
+                                <Record Type="SAP__UI.ChartDimensionAttributeType">
+                                    <PropertyValue Property="Dimension" PropertyPath="GameMinute"/>
+                                    <PropertyValue Property="Role" EnumMember="SAP__UI.ChartDimensionRoleType/Category"/>
+                                </Record>
+                            </Collection>
+                        </PropertyValue>
+                        <PropertyValue Property="Measures">
+                            <Collection>
+                                <PropertyPath>Lost</PropertyPath>
+                                <PropertyPath>ArmyValue</PropertyPath>
+                            </Collection>
+                        </PropertyValue>
+                        <PropertyValue Property="MeasureAttributes">
+                            <Collection>
+                                <Record Type="SAP__UI.ChartMeasureAttributeType">
+                                    <PropertyValue Property="Measure" PropertyPath="Lost"/>
+                                    <PropertyValue Property="Role" EnumMember="SAP__UI.ChartMeasureRoleType/Axis1"/>
+                                </Record>
+                                <Record Type="SAP__UI.ChartMeasureAttributeType">
+                                    <PropertyValue Property="Measure" PropertyPath="ArmyValue"/>
+                                    <PropertyValue Property="Role" EnumMember="SAP__UI.ChartMeasureRoleType/Axis1"/>
+                                </Record>
+                            </Collection>
+                        </PropertyValue>
+                    </Record>
+                </Annotation>
+                <Annotation Term="SAP__UI.HeaderInfo">
+                    <Record>
+                        <PropertyValue Property="TypeName" String="Score"/>
+                        <PropertyValue Property="TypeNamePlural" String="Scores"/>
+                    </Record>
+                </Annotation>
+                <Annotation Term="SAP__UI.KPI" Qualifier="ArmyPeak">
+                    <Record>
+                        <PropertyValue Property="ShortDescription" String="Army peak"/>
+                        <PropertyValue Property="DataPoint" Path="@SAP__UI.DataPoint#ArmyPeak"/>
+                        <PropertyValue Property="Detail">
+                            <Record Type="SAP__UI.KPIDetailType">
+                                <PropertyValue Property="DefaultPresentationVariant" Path="@SAP__UI.PresentationVariant#KpiArmy"/>
+                            </Record>
+                        </PropertyValue>
+                        <PropertyValue Property="ID" String="ZSCE_KPI_ARMY_PEAK"/>
+                        <PropertyValue Property="SelectionVariantQualifier" Path="@SAP__UI.SelectionVariant#LatestGame"/>
+                    </Record>
+                </Annotation>
+                <Annotation Term="SAP__UI.DataPoint" Qualifier="ArmyPeak">
+                    <Record>
+                        <PropertyValue Property="Value" Path="ArmyValue"/>
+                        <PropertyValue Property="Title" String="Army peak"/>
+                        <PropertyValue Property="Visualization" EnumMember="SAP__UI.VisualizationType/Number"/>
+                    </Record>
+                </Annotation>
+                <Annotation Term="SAP__UI.KPI" Qualifier="Collected">
+                    <Record>
+                        <PropertyValue Property="ShortDescription" String="Collected"/>
+                        <PropertyValue Property="DataPoint" Path="@SAP__UI.DataPoint#Collected"/>
+                        <PropertyValue Property="Detail">
+                            <Record Type="SAP__UI.KPIDetailType">
+                                <PropertyValue Property="DefaultPresentationVariant" Path="@SAP__UI.PresentationVariant#KpiCollected"/>
+                            </Record>
+                        </PropertyValue>
+                        <PropertyValue Property="ID" String="ZSCE_KPI_COLLECTED"/>
+                        <PropertyValue Property="SelectionVariantQualifier" Path="@SAP__UI.SelectionVariant#LatestGame"/>
+                    </Record>
+                </Annotation>
+                <Annotation Term="SAP__UI.DataPoint" Qualifier="Collected">
+                    <Record>
+                        <PropertyValue Property="Value" Path="Collected"/>
+                        <PropertyValue Property="Title" String="Collected"/>
+                        <PropertyValue Property="Visualization" EnumMember="SAP__UI.VisualizationType/Number"/>
+                    </Record>
+                </Annotation>
+                <Annotation Term="SAP__UI.KPI" Qualifier="Lost">
+                    <Record>
+                        <PropertyValue Property="ShortDescription" String="Lost"/>
+                        <PropertyValue Property="DataPoint" Path="@SAP__UI.DataPoint#Lost"/>
+                        <PropertyValue Property="Detail">
+                            <Record Type="SAP__UI.KPIDetailType">
+                                <PropertyValue Property="DefaultPresentationVariant" Path="@SAP__UI.PresentationVariant#KpiLost"/>
+                            </Record>
+                        </PropertyValue>
+                        <PropertyValue Property="ID" String="ZSCE_KPI_LOST"/>
+                        <PropertyValue Property="SelectionVariantQualifier" Path="@SAP__UI.SelectionVariant#LatestGame"/>
+                    </Record>
+                </Annotation>
+                <Annotation Term="SAP__UI.DataPoint" Qualifier="Lost">
+                    <Record>
+                        <PropertyValue Property="Value" Path="Lost"/>
+                        <PropertyValue Property="Title" String="Lost"/>
+                        <PropertyValue Property="Visualization" EnumMember="SAP__UI.VisualizationType/Number"/>
+                    </Record>
+                </Annotation>
+                <Annotation Term="SAP__UI.LineItem">
+                    <Collection>
+                        <Record Type="SAP__UI.DataField">
+                            <PropertyValue Property="Value" Path="GameUUID"/>
+                        </Record>
+                        <Record Type="SAP__UI.DataField">
+                            <PropertyValue Property="Value" Path="DivisionUUID"/>
+                        </Record>
+                        <Record Type="SAP__UI.DataField">
+                            <PropertyValue Property="Value" Path="GameMinute"/>
+                        </Record>
+                        <Record Type="SAP__UI.DataField">
+                            <PropertyValue Property="Value" Path="ArmyValue"/>
+                        </Record>
+                        <Record Type="SAP__UI.DataField">
+                            <PropertyValue Property="Value" Path="Workers"/>
+                        </Record>
+                        <Record Type="SAP__UI.DataField">
+                            <PropertyValue Property="Value" Path="BankMinerals"/>
+                        </Record>
+                        <Record Type="SAP__UI.DataField">
+                            <PropertyValue Property="Value" Path="BankGas"/>
+                        </Record>
+                        <Record Type="SAP__UI.DataField">
+                            <PropertyValue Property="Value" Path="Collected"/>
+                        </Record>
+                        <Record Type="SAP__UI.DataField">
+                            <PropertyValue Property="Value" Path="Lost"/>
+                        </Record>
+                    </Collection>
+                </Annotation>
+                <Annotation Term="SAP__UI.PresentationVariant" Qualifier="KpiLost">
+                    <Record>
+                        <PropertyValue Property="SortOrder">
+                            <Collection>
+                                <Record Type="SAP__common.SortOrderType">
+                                    <PropertyValue Property="Property" PropertyPath="GameMinute"/>
+                                    <PropertyValue Property="Descending" Bool="false"/>
+                                </Record>
+                            </Collection>
+                        </PropertyValue>
+                        <PropertyValue Property="Visualizations">
+                            <Collection>
+                                <AnnotationPath>@SAP__UI.Chart#KpiLost</AnnotationPath>
+                            </Collection>
+                        </PropertyValue>
+                    </Record>
+                </Annotation>
+                <Annotation Term="SAP__UI.PresentationVariant" Qualifier="KpiArmy">
+                    <Record>
+                        <PropertyValue Property="SortOrder">
+                            <Collection>
+                                <Record Type="SAP__common.SortOrderType">
+                                    <PropertyValue Property="Property" PropertyPath="GameMinute"/>
+                                    <PropertyValue Property="Descending" Bool="false"/>
+                                </Record>
+                            </Collection>
+                        </PropertyValue>
+                        <PropertyValue Property="Visualizations">
+                            <Collection>
+                                <AnnotationPath>@SAP__UI.Chart#KpiArmy</AnnotationPath>
+                            </Collection>
+                        </PropertyValue>
+                    </Record>
+                </Annotation>
+                <Annotation Term="SAP__UI.PresentationVariant" Qualifier="KpiCollected">
+                    <Record>
+                        <PropertyValue Property="SortOrder">
+                            <Collection>
+                                <Record Type="SAP__common.SortOrderType">
+                                    <PropertyValue Property="Property" PropertyPath="GameMinute"/>
+                                    <PropertyValue Property="Descending" Bool="false"/>
+                                </Record>
+                            </Collection>
+                        </PropertyValue>
+                        <PropertyValue Property="Visualizations">
+                            <Collection>
+                                <AnnotationPath>@SAP__UI.Chart#KpiCollected</AnnotationPath>
+                            </Collection>
+                        </PropertyValue>
+                    </Record>
+                </Annotation>
+                <Annotation Term="SAP__UI.PresentationVariant">
+                    <Record>
+                        <PropertyValue Property="SortOrder">
+                            <Collection>
+                                <Record Type="SAP__common.SortOrderType">
+                                    <PropertyValue Property="Property" PropertyPath="GameMinute"/>
+                                    <PropertyValue Property="Descending" Bool="false"/>
+                                </Record>
+                            </Collection>
+                        </PropertyValue>
+                        <PropertyValue Property="Visualizations">
+                            <Collection>
+                                <AnnotationPath>@SAP__UI.LineItem</AnnotationPath>
+                                <AnnotationPath>@SAP__UI.Chart#ArmyAndLosses</AnnotationPath>
+                            </Collection>
+                        </PropertyValue>
+                    </Record>
+                </Annotation>
+                <Annotation Term="SAP__UI.SelectionFields">
+                    <Collection>
+                        <PropertyPath>LatestGame</PropertyPath>
+                        <PropertyPath>GameUUID</PropertyPath>
+                        <PropertyPath>DivisionUUID</PropertyPath>
+                        <PropertyPath>CompanyCode</PropertyPath>
+                    </Collection>
+                </Annotation>
+                <Annotation Term="SAP__UI.SelectionVariant" Qualifier="LatestGame">
+                    <Record>
+                        <PropertyValue Property="Text" String="Latest game"/>
+                        <PropertyValue Property="SelectOptions">
+                            <Collection>
+                                <Record Type="SAP__UI.SelectOptionType">
+                                    <PropertyValue Property="PropertyName" PropertyPath="LatestGame"/>
+                                    <PropertyValue Property="Ranges">
+                                        <Collection>
+                                            <Record Type="SAP__UI.SelectionRangeType">
+                                                <PropertyValue Property="Sign" EnumMember="SAP__UI.SelectionRangeSignType/I"/>
+                                                <PropertyValue Property="Option" EnumMember="SAP__UI.SelectionRangeOptionType/EQ"/>
+                                                <PropertyValue Property="Low" String="YES"/>
+                                            </Record>
+                                        </Collection>
+                                    </PropertyValue>
+                                </Record>
+                            </Collection>
+                        </PropertyValue>
+                    </Record>
+                </Annotation>
+                <Annotation Term="SAP__aggregation.CustomAggregate" Qualifier="MineralCurrency" String="Edm.String"/>
+                <Annotation Term="SAP__aggregation.CustomAggregate" Qualifier="GasCurrency" String="Edm.String"/>
+                <Annotation Term="SAP__aggregation.CustomAggregate" Qualifier="ArmyValue" String="Edm.Decimal"/>
+                <Annotation Term="SAP__aggregation.CustomAggregate" Qualifier="Workers" String="Edm.Int32"/>
+                <Annotation Term="SAP__aggregation.CustomAggregate" Qualifier="BankMinerals" String="Edm.Decimal"/>
+                <Annotation Term="SAP__aggregation.CustomAggregate" Qualifier="BankGas" String="Edm.Decimal"/>
+                <Annotation Term="SAP__aggregation.CustomAggregate" Qualifier="Collected" String="Edm.Decimal"/>
+                <Annotation Term="SAP__aggregation.CustomAggregate" Qualifier="Lost" String="Edm.Decimal"/>
+            </Annotations>
+            <Annotations Target="SAP__self.Container/Score">
+                <Annotation Term="SAP__capabilities.SearchRestrictions">
+                    <Record>
+                        <PropertyValue Property="Searchable" Bool="false"/>
+                    </Record>
+                </Annotation>
+                <Annotation Term="SAP__capabilities.FilterRestrictions">
+                    <Record>
+                        <PropertyValue Property="Filterable" Bool="true"/>
+                        <PropertyValue Property="FilterExpressionRestrictions">
+                            <Collection>
+                                <Record>
+                                    <PropertyValue Property="Property" PropertyPath="LatestGame"/>
+                                    <PropertyValue Property="AllowedExpressions" String="SingleValue"/>
+                                </Record>
+                            </Collection>
+                        </PropertyValue>
+                    </Record>
+                </Annotation>
+                <Annotation Term="SAP__capabilities.InsertRestrictions">
+                    <Record>
+                        <PropertyValue Property="Insertable" Bool="false"/>
+                    </Record>
+                </Annotation>
+                <Annotation Term="SAP__capabilities.DeleteRestrictions">
+                    <Record>
+                        <PropertyValue Property="Deletable" Bool="false"/>
+                    </Record>
+                </Annotation>
+                <Annotation Term="SAP__capabilities.UpdateRestrictions">
+                    <Record>
+                        <PropertyValue Property="Updatable" Bool="false"/>
+                        <PropertyValue Property="QueryOptions">
+                            <Record>
+                                <PropertyValue Property="SelectSupported" Bool="true"/>
+                            </Record>
+                        </PropertyValue>
+                    </Record>
+                </Annotation>
+            </Annotations>
+            <Annotations Target="SAP__self.MaterialVHType/Material">
+                <Annotation Term="SAP__common.Label" String="Material"/>
+            </Annotations>
+            <Annotations Target="SAP__self.MaterialVHType/Category">
+                <Annotation Term="SAP__common.Label" String="Category"/>
+            </Annotations>
+            <Annotations Target="SAP__self.MaterialVHType">
+                <Annotation Term="SAP__common.Label" String="Material"/>
+            </Annotations>
+            <Annotations Target="SAP__self.Container/MaterialVH">
+                <Annotation Term="SAP__capabilities.SearchRestrictions">
+                    <Record>
+                        <PropertyValue Property="Searchable" Bool="false"/>
+                    </Record>
+                </Annotation>
+                <Annotation Term="SAP__capabilities.InsertRestrictions">
+                    <Record>
+                        <PropertyValue Property="Insertable" Bool="false"/>
+                    </Record>
+                </Annotation>
+                <Annotation Term="SAP__capabilities.DeleteRestrictions">
+                    <Record>
+                        <PropertyValue Property="Deletable" Bool="false"/>
+                    </Record>
+                </Annotation>
+                <Annotation Term="SAP__capabilities.UpdateRestrictions">
+                    <Record>
+                        <PropertyValue Property="Updatable" Bool="false"/>
+                        <PropertyValue Property="QueryOptions">
+                            <Record>
+                                <PropertyValue Property="SelectSupported" Bool="true"/>
+                            </Record>
+                        </PropertyValue>
+                    </Record>
+                </Annotation>
+            </Annotations>
+            <Annotations Target="SAP__self.RaceVHType/CompanyCode">
+                <Annotation Term="SAP__common.Label" String="Race"/>
+                <Annotation Term="SAP__common.Text" Path="Race">
+                    <Annotation Term="SAP__UI.TextArrangement" EnumMember="SAP__UI.TextArrangementType/TextOnly"/>
+                </Annotation>
+            </Annotations>
+            <Annotations Target="SAP__self.RaceVHType/Race">
+                <Annotation Term="SAP__common.Label" String="Race name"/>
+            </Annotations>
+            <Annotations Target="SAP__self.RaceVHType">
+                <Annotation Term="SAP__common.Label" String="Race"/>
+            </Annotations>
+            <Annotations Target="SAP__self.Container/RaceVH">
+                <Annotation Term="SAP__capabilities.SearchRestrictions">
+                    <Record>
+                        <PropertyValue Property="Searchable" Bool="false"/>
+                    </Record>
+                </Annotation>
+                <Annotation Term="SAP__capabilities.InsertRestrictions">
+                    <Record>
+                        <PropertyValue Property="Insertable" Bool="false"/>
+                    </Record>
+                </Annotation>
+                <Annotation Term="SAP__capabilities.DeleteRestrictions">
+                    <Record>
+                        <PropertyValue Property="Deletable" Bool="false"/>
+                    </Record>
+                </Annotation>
+                <Annotation Term="SAP__capabilities.UpdateRestrictions">
+                    <Record>
+                        <PropertyValue Property="Updatable" Bool="false"/>
+                        <PropertyValue Property="QueryOptions">
+                            <Record>
+                                <PropertyValue Property="SelectSupported" Bool="true"/>
+                            </Record>
+                        </PropertyValue>
+                    </Record>
+                </Annotation>
+            </Annotations>
+            <Annotations Target="SAP__self.GameVHType/GameUUID">
+                <Annotation Term="SAP__common.Label" String="Game"/>
+                <Annotation Term="SAP__common.Text" Path="GameName">
+                    <Annotation Term="SAP__UI.TextArrangement" EnumMember="SAP__UI.TextArrangementType/TextOnly"/>
+                </Annotation>
+                <Annotation Term="SAP__common.Heading" String="UUID"/>
+                <Annotation Term="SAP__common.QuickInfo" String="16 Byte UUID in 16 Bytes (Raw Format)"/>
+            </Annotations>
+            <Annotations Target="SAP__self.GameVHType/GameName">
+                <Annotation Term="SAP__common.Label" String="Game"/>
+            </Annotations>
+            <Annotations Target="SAP__self.GameVHType/LatestGame">
+                <Annotation Term="SAP__common.Label" String="Latest game"/>
+            </Annotations>
+            <Annotations Target="SAP__self.GameVHType">
+                <Annotation Term="SAP__common.Label" String="Game"/>
+            </Annotations>
+            <Annotations Target="SAP__self.Container/GameVH">
+                <Annotation Term="SAP__capabilities.SearchRestrictions">
+                    <Record>
+                        <PropertyValue Property="Searchable" Bool="false"/>
+                    </Record>
+                </Annotation>
+                <Annotation Term="SAP__capabilities.InsertRestrictions">
+                    <Record>
+                        <PropertyValue Property="Insertable" Bool="false"/>
+                    </Record>
+                </Annotation>
+                <Annotation Term="SAP__capabilities.DeleteRestrictions">
+                    <Record>
+                        <PropertyValue Property="Deletable" Bool="false"/>
+                    </Record>
+                </Annotation>
+                <Annotation Term="SAP__capabilities.UpdateRestrictions">
+                    <Record>
+                        <PropertyValue Property="Updatable" Bool="false"/>
+                        <PropertyValue Property="QueryOptions">
+                            <Record>
+                                <PropertyValue Property="SelectSupported" Bool="true"/>
+                            </Record>
+                        </PropertyValue>
+                    </Record>
+                </Annotation>
+            </Annotations>
+            <Annotations Target="SAP__self.MovementAnalysisType/EventUUID">
+                <Annotation Term="SAP__UI.Hidden"/>
+                <Annotation Term="SAP__common.Label" String="UUID"/>
+                <Annotation Term="SAP__common.QuickInfo" String="16 Byte UUID in 16 Bytes (Raw Format)"/>
+            </Annotations>
+        </Schema>
+    </edmx:DataServices>
+</edmx:Edmx>

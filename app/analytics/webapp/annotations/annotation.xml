@@ -1,0 +1,221 @@
+<edmx:Edmx xmlns:edmx="http://docs.oasis-open.org/odata/ns/edmx" Version="4.0">
+    <edmx:Reference Uri="https://sap.github.io/odata-vocabularies/vocabularies/Common.xml">
+        <edmx:Include Namespace="com.sap.vocabularies.Common.v1" Alias="Common"/>
+    </edmx:Reference>
+    <edmx:Reference Uri="https://sap.github.io/odata-vocabularies/vocabularies/UI.xml">
+        <edmx:Include Namespace="com.sap.vocabularies.UI.v1" Alias="UI"/>
+    </edmx:Reference>
+    <edmx:Reference Uri="https://sap.github.io/odata-vocabularies/vocabularies/Communication.xml">
+        <edmx:Include Namespace="com.sap.vocabularies.Communication.v1" Alias="Communication"/>
+    </edmx:Reference>
+    <edmx:Reference Uri="/sap/opu/odata4/sap/zsb_sce_analytics_o4/srvd/sap/zsd_sce_analytics/0001/$metadata">
+        <edmx:Include Namespace="com.sap.gateway.srvd.zsd_sce_analytics.v0001" Alias="SAP__self"/>
+    </edmx:Reference>
+    <edmx:DataServices>
+        <Schema xmlns="http://docs.oasis-open.org/odata/ns/edm" Namespace="local">
+            <!-- Visual filters live here, not in CDS: a RAP value help on the analysed view dumps
+                 (VH_VIEW_SAME_AS_SOURCE_VIEW). Here Fiori Elements queries the entity set itself with $apply. Each filter
+                 follows the other filters (In parameters). OData V4: bar charts only (no donut; a line needs a date). -->
+            <Annotations Target="SAP__self.MovementAnalysisType">
+                <Annotation Term="UI.Chart" Qualifier="VfMovementType">
+                    <Record Type="UI.ChartDefinitionType">
+                        <PropertyValue Property="Title" String="Value by movement type"/>
+                        <PropertyValue Property="ChartType" EnumMember="UI.ChartType/Bar"/>
+                        <PropertyValue Property="Dimensions"><Collection><PropertyPath>MovementType</PropertyPath></Collection></PropertyValue>
+                        <PropertyValue Property="Measures"><Collection><PropertyPath>ValueMin</PropertyPath></Collection></PropertyValue>
+                    </Record>
+                </Annotation>
+                <Annotation Term="UI.PresentationVariant" Qualifier="VfMovementType">
+                    <Record>
+                        <PropertyValue Property="SortOrder">
+                            <Collection>
+                                <Record Type="Common.SortOrderType">
+                                    <PropertyValue Property="Property" PropertyPath="ValueMin"/>
+                                    <PropertyValue Property="Descending" Bool="true"/>
+                                </Record>
+                            </Collection>
+                        </PropertyValue>
+                        <PropertyValue Property="Visualizations"><Collection><AnnotationPath>@UI.Chart#VfMovementType</AnnotationPath></Collection></PropertyValue>
+                    </Record>
+                </Annotation>
+                <Annotation Term="UI.Chart" Qualifier="VfCategory">
+                    <Record Type="UI.ChartDefinitionType">
+                        <PropertyValue Property="Title" String="Value by category"/>
+                        <PropertyValue Property="ChartType" EnumMember="UI.ChartType/Bar"/>
+                        <PropertyValue Property="Dimensions"><Collection><PropertyPath>Category</PropertyPath></Collection></PropertyValue>
+                        <PropertyValue Property="Measures"><Collection><PropertyPath>ValueMin</PropertyPath></Collection></PropertyValue>
+                    </Record>
+                </Annotation>
+                <Annotation Term="UI.PresentationVariant" Qualifier="VfCategory">
+                    <Record>
+                        <PropertyValue Property="SortOrder">
+                            <Collection>
+                                <Record Type="Common.SortOrderType">
+                                    <PropertyValue Property="Property" PropertyPath="ValueMin"/>
+                                    <PropertyValue Property="Descending" Bool="true"/>
+                                </Record>
+                            </Collection>
+                        </PropertyValue>
+                        <PropertyValue Property="Visualizations"><Collection><AnnotationPath>@UI.Chart#VfCategory</AnnotationPath></Collection></PropertyValue>
+                    </Record>
+                </Annotation>
+                <Annotation Term="UI.Chart" Qualifier="VfMaterial">
+                    <Record Type="UI.ChartDefinitionType">
+                        <PropertyValue Property="Title" String="Value by material"/>
+                        <PropertyValue Property="ChartType" EnumMember="UI.ChartType/Bar"/>
+                        <PropertyValue Property="Dimensions"><Collection><PropertyPath>Material</PropertyPath></Collection></PropertyValue>
+                        <PropertyValue Property="Measures"><Collection><PropertyPath>ValueMin</PropertyPath></Collection></PropertyValue>
+                    </Record>
+                </Annotation>
+                <Annotation Term="UI.PresentationVariant" Qualifier="VfMaterial">
+                    <Record>
+                        <PropertyValue Property="SortOrder">
+                            <Collection>
+                                <Record Type="Common.SortOrderType">
+                                    <PropertyValue Property="Property" PropertyPath="ValueMin"/>
+                                    <PropertyValue Property="Descending" Bool="true"/>
+                                </Record>
+                            </Collection>
+                        </PropertyValue>
+                        <PropertyValue Property="Visualizations"><Collection><AnnotationPath>@UI.Chart#VfMaterial</AnnotationPath></Collection></PropertyValue>
+                    </Record>
+                </Annotation>
+                <!-- The table's own variant (manifest: secondary view): grouped by movement type, in game order -->
+                <Annotation Term="UI.PresentationVariant" Qualifier="Table">
+                    <Record>
+                        <PropertyValue Property="GroupBy"><Collection><PropertyPath>MovementType</PropertyPath></Collection></PropertyValue>
+                        <PropertyValue Property="SortOrder">
+                            <Collection>
+                                <Record Type="Common.SortOrderType">
+                                    <PropertyValue Property="Property" PropertyPath="GameSeconds"/>
+                                    <PropertyValue Property="Descending" Bool="false"/>
+                                </Record>
+                            </Collection>
+                        </PropertyValue>
+                        <PropertyValue Property="Visualizations"><Collection><AnnotationPath>@UI.LineItem</AnnotationPath></Collection></PropertyValue>
+                    </Record>
+                </Annotation>
+            </Annotations>
+            <Annotations Target="SAP__self.MovementAnalysisType/MovementType">
+                <Annotation Term="Common.ValueList" Qualifier="VfMovementType">
+                    <Record Type="Common.ValueListType">
+                        <PropertyValue Property="CollectionPath" String="MovementAnalysis"/>
+                        <PropertyValue Property="PresentationVariantQualifier" String="VfMovementType"/>
+                        <PropertyValue Property="Parameters">
+                            <Collection>
+                                <Record Type="Common.ValueListParameterInOut">
+                                    <PropertyValue Property="LocalDataProperty" PropertyPath="MovementType"/>
+                                    <PropertyValue Property="ValueListProperty" String="MovementType"/>
+                                </Record>
+                                <Record Type="Common.ValueListParameterIn">
+                                    <PropertyValue Property="LocalDataProperty" PropertyPath="LatestGame"/>
+                                    <PropertyValue Property="ValueListProperty" String="LatestGame"/>
+                                </Record>
+                                <Record Type="Common.ValueListParameterIn">
+                                    <PropertyValue Property="LocalDataProperty" PropertyPath="GameUUID"/>
+                                    <PropertyValue Property="ValueListProperty" String="GameUUID"/>
+                                </Record>
+                                <Record Type="Common.ValueListParameterIn">
+                                    <PropertyValue Property="LocalDataProperty" PropertyPath="DivisionUUID"/>
+                                    <PropertyValue Property="ValueListProperty" String="DivisionUUID"/>
+                                </Record>
+                                <Record Type="Common.ValueListParameterIn">
+                                    <PropertyValue Property="LocalDataProperty" PropertyPath="CompanyCode"/>
+                                    <PropertyValue Property="ValueListProperty" String="CompanyCode"/>
+                                </Record>
+                                <Record Type="Common.ValueListParameterIn">
+                                    <PropertyValue Property="LocalDataProperty" PropertyPath="Category"/>
+                                    <PropertyValue Property="ValueListProperty" String="Category"/>
+                                </Record>
+                                <Record Type="Common.ValueListParameterIn">
+                                    <PropertyValue Property="LocalDataProperty" PropertyPath="Material"/>
+                                    <PropertyValue Property="ValueListProperty" String="Material"/>
+                                </Record>
+                            </Collection>
+                        </PropertyValue>
+                    </Record>
+                </Annotation>
+            </Annotations>
+            <Annotations Target="SAP__self.MovementAnalysisType/Category">
+                <Annotation Term="Common.ValueList" Qualifier="VfCategory">
+                    <Record Type="Common.ValueListType">
+                        <PropertyValue Property="CollectionPath" String="MovementAnalysis"/>
+                        <PropertyValue Property="PresentationVariantQualifier" String="VfCategory"/>
+                        <PropertyValue Property="Parameters">
+                            <Collection>
+                                <Record Type="Common.ValueListParameterInOut">
+                                    <PropertyValue Property="LocalDataProperty" PropertyPath="Category"/>
+                                    <PropertyValue Property="ValueListProperty" String="Category"/>
+                                </Record>
+                                <Record Type="Common.ValueListParameterIn">
+                                    <PropertyValue Property="LocalDataProperty" PropertyPath="LatestGame"/>
+                                    <PropertyValue Property="ValueListProperty" String="LatestGame"/>
+                                </Record>
+                                <Record Type="Common.ValueListParameterIn">
+                                    <PropertyValue Property="LocalDataProperty" PropertyPath="GameUUID"/>
+                                    <PropertyValue Property="ValueListProperty" String="GameUUID"/>
+                                </Record>
+                                <Record Type="Common.ValueListParameterIn">
+                                    <PropertyValue Property="LocalDataProperty" PropertyPath="DivisionUUID"/>
+                                    <PropertyValue Property="ValueListProperty" String="DivisionUUID"/>
+                                </Record>
+                                <Record Type="Common.ValueListParameterIn">
+                                    <PropertyValue Property="LocalDataProperty" PropertyPath="CompanyCode"/>
+                                    <PropertyValue Property="ValueListProperty" String="CompanyCode"/>
+                                </Record>
+                                <Record Type="Common.ValueListParameterIn">
+                                    <PropertyValue Property="LocalDataProperty" PropertyPath="MovementType"/>
+                                    <PropertyValue Property="ValueListProperty" String="MovementType"/>
+                                </Record>
+                                <Record Type="Common.ValueListParameterIn">
+                                    <PropertyValue Property="LocalDataProperty" PropertyPath="Material"/>
+                                    <PropertyValue Property="ValueListProperty" String="Material"/>
+                                </Record>
+                            </Collection>
+                        </PropertyValue>
+                    </Record>
+                </Annotation>
+            </Annotations>
+            <Annotations Target="SAP__self.MovementAnalysisType/Material">
+                <Annotation Term="Common.ValueList" Qualifier="VfMaterial">
+                    <Record Type="Common.ValueListType">
+                        <PropertyValue Property="CollectionPath" String="MovementAnalysis"/>
+                        <PropertyValue Property="PresentationVariantQualifier" String="VfMaterial"/>
+                        <PropertyValue Property="Parameters">
+                            <Collection>
+                                <Record Type="Common.ValueListParameterInOut">
+                                    <PropertyValue Property="LocalDataProperty" PropertyPath="Material"/>
+                                    <PropertyValue Property="ValueListProperty" String="Material"/>
+                                </Record>
+                                <Record Type="Common.ValueListParameterIn">
+                                    <PropertyValue Property="LocalDataProperty" PropertyPath="LatestGame"/>
+                                    <PropertyValue Property="ValueListProperty" String="LatestGame"/>
+                                </Record>
+                                <Record Type="Common.ValueListParameterIn">
+                                    <PropertyValue Property="LocalDataProperty" PropertyPath="GameUUID"/>
+                                    <PropertyValue Property="ValueListProperty" String="GameUUID"/>
+                                </Record>
+                                <Record Type="Common.ValueListParameterIn">
+                                    <PropertyValue Property="LocalDataProperty" PropertyPath="DivisionUUID"/>
+                                    <PropertyValue Property="ValueListProperty" String="DivisionUUID"/>
+                                </Record>
+                                <Record Type="Common.ValueListParameterIn">
+                                    <PropertyValue Property="LocalDataProperty" PropertyPath="CompanyCode"/>
+                                    <PropertyValue Property="ValueListProperty" String="CompanyCode"/>
+                                </Record>
+                                <Record Type="Common.ValueListParameterIn">
+                                    <PropertyValue Property="LocalDataProperty" PropertyPath="MovementType"/>
+                                    <PropertyValue Property="ValueListProperty" String="MovementType"/>
+                                </Record>
+                                <Record Type="Common.ValueListParameterIn">
+                                    <PropertyValue Property="LocalDataProperty" PropertyPath="Category"/>
+                                    <PropertyValue Property="ValueListProperty" String="Category"/>
+                                </Record>
+                            </Collection>
+                        </PropertyValue>
+                    </Record>
+                </Annotation>
+            </Annotations>
+        </Schema>
+    </edmx:DataServices>
+</edmx:Edmx>
