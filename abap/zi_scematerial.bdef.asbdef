@@ -28,6 +28,7 @@ etag master LastChangedAt
     BuildSeconds  = build_seconds;
     ProducedBy    = produced_by;
     Prerequisite  = prerequisite;
+    OrderBlocked  = order_blocked;
     LastChangedAt = last_changed_at;
   }
 }

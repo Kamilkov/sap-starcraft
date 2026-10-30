@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Post parser output into ZSD_SCE over OData V4; also imported by live_bot.py.
 
-  push.py --seed                  companies + materials.csv (resumable: adds missing rows, updates the tech tree and costs of existing ones)
+  push.py --seed                  companies + materials.csv (resumable: adds missing rows, updates every rule field of existing ones)
   push.py payload.json [--verify] one deep create on Game; --verify compares StockBalance
   push.py --delete <GameUUID>     DELETE Game(<uuid>); RAP cascades to its divisions/plants/orders/events
 
@@ -110,18 +110,18 @@ def seed(sap):
     materials = load_materials()
     existing = {row["Material"]: row for row in
                 sap.get("Material?$select=MaterialUUID,Material,ProducedBy,Prerequisite,MineralCost,GasCost,"
-                        "SupplyProvided&$top=1000")}
+                        "SupplyProvided,Category,SupplyCost,BuildSeconds,OrderBlocked&$top=1000")}
     added = updated = 0
     for m in materials.values():
         synced = {"ProducedBy": m["produced_by"], "Prerequisite": m["prerequisite"],
                   "MineralCost": m["mineral_cost"], "GasCost": m["gas_cost"],
-                  "SupplyProvided": m["supply_provided"]}
+                  "SupplyProvided": m["supply_provided"], "Category": m["category"],
+                  "SupplyCost": m["supply_cost"], "BuildSeconds": m["build_seconds"],
+                  "OrderBlocked": m["order_blocked"] == "X"}
         row = existing.get(m["matnr"])
         if row is None:
             sap.post("Material", {"MaterialUUID": str(uuid.uuid4()), "Material": m["matnr"],
-                                  "CompanyCode": m["bukrs"], "Category": m["category"],
-                                  "SupplyCost": m["supply_cost"], "BuildSeconds": m["build_seconds"],
-                                  **synced})
+                                  "CompanyCode": m["bukrs"], **synced})
             added += 1
         elif any(row[k] != v for k, v in synced.items()):
             sap.patch(f"Material({row['MaterialUUID']})", synced)

@@ -14,6 +14,7 @@ define root view entity ZI_SCEMaterial
       build_seconds as BuildSeconds,
       produced_by   as ProducedBy,
       prerequisite  as Prerequisite,
+      order_blocked as OrderBlocked,
       @Semantics.systemDateTime.lastChangedAt: true
       last_changed_at as LastChangedAt
 }

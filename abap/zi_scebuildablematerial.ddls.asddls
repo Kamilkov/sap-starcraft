@@ -33,3 +33,4 @@ define view entity ZI_SCEBuildableMaterial
         else 'X'
       end                               as Buildable
 }
+where Material.OrderBlocked = ''

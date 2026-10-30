@@ -8,10 +8,86 @@ CLASS lhc_game DEFINITION INHERITING FROM cl_abap_behavior_handler.
       IMPORTING REQUEST requested_authorizations FOR game RESULT result.
     METHODS validatereplayhash FOR VALIDATE ON SAVE
       IMPORTING keys FOR game~validatereplayhash.
+    METHODS recordresult FOR MODIFY
+      IMPORTING keys FOR ACTION game~recordresult.
 ENDCLASS.
 
 CLASS lhc_game IMPLEMENTATION.
   METHOD get_global_authorizations.
+  ENDMETHOD.
+
+  METHOD recordresult.
+    " Plan B's referee reports the match once: winner, duration and every division's result go in one MODIFY, so one save.
+    " A failed key fails the action, and RAP then rolls the whole save back: no partial result can be committed.
+    READ ENTITIES OF zi_scegame IN LOCAL MODE
+      ENTITY game
+        FIELDS ( gameuuid ) WITH CORRESPONDING #( keys )
+      RESULT DATA(games)
+      ENTITY game BY \_division
+        FIELDS ( gameuuid gameresult ) WITH CORRESPONDING #( keys )
+      RESULT DATA(divisions).
+
+    DATA game_updates TYPE TABLE FOR UPDATE zi_scegame.
+    DATA division_updates TYPE TABLE FOR UPDATE zi_scedivision.
+    DATA own LIKE divisions.
+    LOOP AT keys INTO DATA(key).
+      IF NOT line_exists( games[ %tky = key-%tky ] ).
+        APPEND VALUE #( %tky = key-%tky ) TO failed-game.
+        APPEND VALUE #( %tky = key-%tky
+                        %msg = new_message_with_text( severity = if_abap_behv_message=>severity-error
+                                                      text     = |Game not found| ) )
+               TO reported-game.
+        CONTINUE.
+      ENDIF.
+      own = VALUE #( FOR d IN divisions WHERE ( gameuuid = key-gameuuid ) ( d ) ).
+      " a recorded match is final: any division with a result other than UNKNOWN means it was recorded
+      DATA(recorded) = abap_false.
+      LOOP AT own INTO DATA(recorded_division) WHERE gameresult IS NOT INITIAL AND gameresult <> 'UNKNOWN'.
+        recorded = abap_true.
+      ENDLOOP.
+      IF recorded = abap_true.
+        APPEND VALUE #( %tky = key-%tky ) TO failed-game.
+        APPEND VALUE #( %tky = key-%tky
+                        %msg = new_message_with_text( severity = if_abap_behv_message=>severity-error
+                                                      text     = |Result already recorded| ) )
+               TO reported-game.
+        CONTINUE.
+      ENDIF.
+      " a void match has no winner, so a winner given with it is not looked at
+      DATA(winner) = COND sysuuid_x16( WHEN key-%param-isvoid = abap_true THEN '00000000000000000000000000000000'
+                                       ELSE key-%param-winnerdivisionuuid ).
+      IF winner IS NOT INITIAL AND NOT line_exists( own[ divisionuuid = winner ] ).
+        APPEND VALUE #( %tky = key-%tky ) TO failed-game.
+        APPEND VALUE #( %tky = key-%tky
+                        %msg = new_message_with_text( severity = if_abap_behv_message=>severity-error
+                                                      text     = |Winner is not a division of this game| ) )
+               TO reported-game.
+        CONTINUE.
+      ENDIF.
+      APPEND VALUE #( %tky = key-%tky winnerdivisionuuid = winner durationseconds = key-%param-durationseconds )
+             TO game_updates.
+      LOOP AT own INTO DATA(division).
+        APPEND VALUE #( %tky = division-%tky
+                        gameresult = COND #( WHEN key-%param-isvoid = abap_true THEN 'VOID'
+                                             WHEN winner IS INITIAL THEN 'TIE'
+                                             WHEN division-divisionuuid = winner THEN 'WIN'
+                                             ELSE 'LOSS' ) )
+               TO division_updates.
+      ENDLOOP.
+    ENDLOOP.
+
+    IF game_updates IS NOT INITIAL.
+      MODIFY ENTITIES OF zi_scegame IN LOCAL MODE
+        ENTITY game
+          UPDATE FIELDS ( winnerdivisionuuid durationseconds ) WITH game_updates
+        ENTITY division
+          UPDATE FIELDS ( gameresult ) WITH division_updates
+        FAILED DATA(update_failed) REPORTED DATA(update_reported).
+      failed-game       = CORRESPONDING #( BASE ( failed-game ) update_failed-game ).
+      failed-division   = CORRESPONDING #( BASE ( failed-division ) update_failed-division ).
+      reported-game     = CORRESPONDING #( BASE ( reported-game ) update_reported-game ).
+      reported-division = CORRESPONDING #( BASE ( reported-division ) update_reported-division ).
+    ENDIF.
   ENDMETHOD.
 
   METHOD validatereplayhash.
@@ -229,15 +305,201 @@ CLASS lhc_event IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
+CLASS lcl_availability DEFINITION FINAL.
+  PUBLIC SECTION.
+    TYPES: BEGIN OF ty_order,
+             key      TYPE sysuuid_x16,
+             material TYPE zsce_material-matnr,
+             quantity TYPE i,
+             mineral  TYPE i,              " cost per unit
+             gas      TYPE i,
+             blocked  TYPE abap_boolean,
+             producer TYPE zsce_material-matnr,
+             prereq   TYPE zsce_material-matnr,
+           END OF ty_order,
+           tt_order TYPE STANDARD TABLE OF ty_order WITH EMPTY KEY,
+           tt_name  TYPE SORTED TABLE OF zsce_material-matnr WITH UNIQUE KEY table_line.
+    "! new: one division's orders entering RELEASED in this save; committed: cost of its RELEASED orders in the DB
+    "! (keys of new excluded); covered: materials on hand >= 1, on a DB order RELEASED/STARTED, or in new.
+    "! Returns the first refusal text, empty when the whole set is admitted.
+    CLASS-METHODS check IMPORTING new            TYPE tt_order
+                                  committed_min  TYPE i
+                                  committed_gas  TYPE i
+                                  on_hand_min    TYPE i
+                                  on_hand_gas    TYPE i
+                                  covered        TYPE tt_name
+                        RETURNING VALUE(refusal) TYPE string.
+    CLASS-METHODS blocked_text IMPORTING material TYPE csequence RETURNING VALUE(text) TYPE string.
+    "! Why an order may not enter its status in this save; empty when it may. before: its status in the DB, empty
+    "! for a new order. A new RELEASED order is admitted here: check prices it with the rest of its set.
+    CLASS-METHODS order_refusal IMPORTING before         TYPE csequence
+                                          status         TYPE csequence
+                                          quantity       TYPE i
+                                RETURNING VALUE(refusal) TYPE string.
+ENDCLASS.
+
+CLASS lcl_availability IMPLEMENTATION.
+  METHOD order_refusal.
+    " the bot moves RELEASED -> STARTED -> CONFIRMED, STARTED -> CANCELLING -> CANCELLED or back to STARTED, and
+    " STARTED or CANCELLING back to RELEASED (refund); no other order enters these three, so none walks past check
+    IF before IS INITIAL AND quantity < 1.
+      refusal = `Quantity must be at least 1`.
+    ELSEIF before IS INITIAL AND status <> 'RELEASED' AND status <> 'CONFIRMED'.   " CONFIRMED: replay ingestion
+      refusal = |Orders are created RELEASED, not { status }|.
+    ELSEIF before IS NOT INITIAL AND ( status = 'RELEASED' OR status = 'STARTED' OR status = 'CANCELLING' )
+       AND before <> 'RELEASED' AND before <> 'STARTED' AND before <> 'CANCELLING'.
+      refusal = |{ before } order cannot go back to { status }|.
+    ENDIF.
+  ENDMETHOD.
+
+  METHOD check.
+    " ponytail: 50-character message limit; worst cases (5-digit figures, RoboticsFacility) in ltc_availability
+    LOOP AT new TRANSPORTING NO FIELDS WHERE quantity < 1.
+      refusal = `Quantity must be at least 1`.
+      RETURN.
+    ENDLOOP.
+    LOOP AT new INTO DATA(order) WHERE blocked = abap_true.
+      refusal = blocked_text( order-material ).
+      RETURN.
+    ENDLOOP.
+    LOOP AT new INTO order.
+      LOOP AT VALUE string_table( ( CONV #( order-producer ) ) ( CONV #( order-prereq ) ) ) INTO DATA(need)
+           WHERE table_line IS NOT INITIAL.
+        IF NOT line_exists( covered[ table_line = need ] ).
+          refusal = |Needs { need }: none on hand or ordered|.
+          RETURN.
+        ENDIF.
+      ENDLOOP.
+    ENDLOOP.
+    DATA(min) = REDUCE i( INIT s = 0 FOR o IN new NEXT s = s + o-mineral * o-quantity ).
+    DATA(gas) = REDUCE i( INIT s = 0 FOR o IN new NEXT s = s + o-gas * o-quantity ).
+    IF min > on_hand_min - committed_min.
+      refusal = |Over budget: { min } MIN needed, { on_hand_min - committed_min } available|.
+    ELSEIF gas > on_hand_gas - committed_gas.
+      refusal = |Over budget: { gas } GAS needed, { on_hand_gas - committed_gas } available|.
+    ENDIF.
+  ENDMETHOD.
+
+  METHOD blocked_text.
+    text = |{ material } cannot be ordered|.
+  ENDMETHOD.
+ENDCLASS.
+
 CLASS lhc_prodorder DEFINITION INHERITING FROM cl_abap_behavior_handler.
   PRIVATE SECTION.
     METHODS get_instance_features FOR INSTANCE FEATURES
       IMPORTING keys REQUEST requested_features FOR prodorder RESULT result.
     METHODS cancelorder FOR MODIFY
       IMPORTING keys FOR ACTION prodorder~cancelorder RESULT result.
+    METHODS validateavailability FOR VALIDATE ON SAVE
+      IMPORTING keys FOR prodorder~validateavailability.
+    "! Why the division cannot release these new orders (key, material, quantity); empty when it can.
+    METHODS division_refusal IMPORTING division       TYPE sysuuid_x16
+                                       new_orders     TYPE lcl_availability=>tt_order
+                             RETURNING VALUE(refusal) TYPE string.
 ENDCLASS.
 
 CLASS lhc_prodorder IMPLEMENTATION.
+  METHOD validateavailability.
+    " SAP checks availability when an order is released (CO02); every later status belongs to the bot
+    TYPES: BEGIN OF ty_error,
+             order TYPE sysuuid_x16,
+             text  TYPE string,
+           END OF ty_error.
+    DATA errors TYPE STANDARD TABLE OF ty_error WITH EMPTY KEY.
+
+    READ ENTITIES OF zi_scegame IN LOCAL MODE
+      ENTITY prodorder
+        FIELDS ( divisionuuid material quantity orderstatus ) WITH CORRESPONDING #( keys )
+      RESULT DATA(orders).
+
+    DATA checked LIKE orders.
+    DATA before TYPE zsce_prodord-order_status.
+    LOOP AT orders INTO DATA(order).
+      CLEAR before.   " stays empty for a new order
+      SELECT SINGLE order_status FROM zsce_prodord WHERE order_uuid = @order-orderuuid INTO @before.
+      DATA(why) = lcl_availability=>order_refusal( before = before status = order-orderstatus quantity = order-quantity ).
+      IF why IS NOT INITIAL.
+        APPEND VALUE #( order = order-orderuuid text = why ) TO errors.
+      ELSEIF before IS INITIAL AND order-orderstatus = 'RELEASED'.
+        APPEND order TO checked.
+      ENDIF.
+    ENDLOOP.
+
+    " a division's new orders are priced together: one refusal fails all of them
+    LOOP AT checked INTO DATA(first) GROUP BY first-divisionuuid INTO DATA(division).
+      DATA(new_orders) = VALUE lcl_availability=>tt_order( FOR m IN GROUP division
+                                                           ( key = m-orderuuid material = m-material quantity = m-quantity ) ).
+      DATA(refusal) = division_refusal( division = division new_orders = new_orders ).
+      IF refusal IS NOT INITIAL.
+        errors = VALUE #( BASE errors FOR n IN new_orders ( order = n-key text = refusal ) ).
+      ENDIF.
+    ENDLOOP.
+
+    LOOP AT errors INTO DATA(error).
+      APPEND VALUE #( orderuuid = error-order ) TO failed-prodorder.
+      APPEND VALUE #( orderuuid            = error-order
+                      %msg                 = new_message_with_text( severity = if_abap_behv_message=>severity-error
+                                                                    text     = error-text )
+                      %element-orderstatus = if_abap_behv=>mk-on )
+             TO reported-prodorder.
+    ENDLOOP.
+  ENDMETHOD.
+
+  METHOD division_refusal.
+    " ponytail: stock is the ledger as of the bot's last posting (it lags the game by up to ~28 s)
+    READ ENTITIES OF zi_scegame IN LOCAL MODE
+      ENTITY division
+        FIELDS ( companycode ) WITH VALUE #( ( divisionuuid = division ) )
+      RESULT DATA(divisions).
+    DATA(company) = VALUE #( divisions[ 1 ]-companycode OPTIONAL ).
+    SELECT matnr, mineral_cost, gas_cost, produced_by, prerequisite, order_blocked FROM zsce_material
+      WHERE bukrs = @company
+      INTO TABLE @DATA(master).
+
+    DATA(priced) = new_orders.
+    DATA covered TYPE lcl_availability=>tt_name.
+    LOOP AT priced ASSIGNING FIELD-SYMBOL(<new>).
+      DATA(row) = VALUE #( master[ matnr = <new>-material ] OPTIONAL ).
+      <new>-mineral  = row-mineral_cost.
+      <new>-gas      = row-gas_cost.
+      <new>-blocked  = xsdbool( row IS INITIAL OR row-order_blocked = abap_true ).   " unknown to the company: blocked
+      <new>-producer = row-produced_by.
+      <new>-prereq   = row-prerequisite.
+      INSERT <new>-material INTO TABLE covered.
+    ENDLOOP.
+
+    SELECT material, onhand FROM zi_scedivisionstock
+      WHERE divisionuuid = @division
+      INTO TABLE @DATA(stock).
+    LOOP AT stock INTO DATA(item) WHERE onhand >= 1.
+      INSERT item-material INTO TABLE covered.
+    ENDLOOP.
+
+    " waiting orders are paid when the bot starts them: their cost is committed; started ones are paid already.
+    " The new orders have no DB row yet, so none of them is counted here.
+    DATA(committed_min) = 0.
+    DATA(committed_gas) = 0.
+    SELECT order_uuid, matnr, quantity, order_status FROM zsce_prodord
+      WHERE division_uuid = @division AND ( order_status = 'RELEASED' OR order_status = 'STARTED' )
+      INTO TABLE @DATA(open).
+    LOOP AT open INTO DATA(o).
+      INSERT o-matnr INTO TABLE covered.
+      IF o-order_status = 'RELEASED'.
+        DATA(cost) = VALUE #( master[ matnr = o-matnr ] OPTIONAL ).
+        committed_min += cost-mineral_cost * o-quantity.
+        committed_gas += cost-gas_cost * o-quantity.
+      ENDIF.
+    ENDLOOP.
+
+    refusal = lcl_availability=>check( new           = priced
+                                       committed_min = committed_min
+                                       committed_gas = committed_gas
+                                       on_hand_min   = VALUE #( stock[ material = 'MINERAL' ]-onhand OPTIONAL )
+                                       on_hand_gas   = VALUE #( stock[ material = 'VESPENE' ]-onhand OPTIONAL )
+                                       covered       = covered ).
+  ENDMETHOD.
+
   METHOD get_instance_features.
     " RELEASED is cancelled in SAP, STARTED in the game by the bot; built or already cancelling: no
     READ ENTITIES OF zi_scegame IN LOCAL MODE
@@ -380,6 +642,7 @@ CLASS lcl_mrp DEFINITION FINAL.
              supplycost     TYPE i,
              supplyprovided TYPE i,
              mineralcost    TYPE i,
+             blocked        TYPE zsce_material-order_blocked,
            END OF ty_master,
            tt_master TYPE SORTED TABLE OF ty_master WITH UNIQUE KEY material,
            BEGIN OF ty_planned,
@@ -490,7 +753,11 @@ CLASS lcl_mrp IMPLEMENTATION.
     LOOP AT available INTO DATA(s).
       COLLECT s INTO left.
     ENDLOOP.
-    DATA(tech) = CORRESPONDING lcl_requirements=>tt_tech( master ).
+    " a blocked material has no place in the tech tree: nothing is proposed for it, and nothing beyond it
+    DATA(tech) = VALUE lcl_requirements=>tt_tech( FOR mrow IN master WHERE ( blocked = abap_false )
+                                                  ( CORRESPONDING #( mrow ) ) ).
+    DATA(blocked) = VALUE lcl_requirements=>tt_materials( FOR brow IN master WHERE ( blocked = abap_true )
+                                                          ( brow-material ) ).
     " what stock or an open order covers: no date, so never late
     DATA(stocked) = VALUE lcl_requirements=>tt_materials( FOR l IN left WHERE ( quantity > 0 ) ( l-material ) ).
     DATA(covered) = stocked.
@@ -540,6 +807,9 @@ CLASS lcl_mrp IMPLEMENTATION.
     APPEND LINES OF VALUE lcl_requirements=>tt_materials( FOR o IN orders ( o-material ) ) TO covered.
     LOOP AT orders INTO DATA(needing) TO planned.
       DATA(missing) = lcl_requirements=>missing( material = needing-material tech = tech covered = covered ).
+      LOOP AT blocked INTO DATA(refused).
+        DELETE missing WHERE table_line = refused.
+      ENDLOOP.
       APPEND LINES OF missing TO covered.
       APPEND LINES OF missing TO needs.
     ENDLOOP.
@@ -757,8 +1027,29 @@ CLASS lcl_mrp IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
+CLASS lcl_posture DEFINITION FINAL.
+  PUBLIC SECTION.
+    CONSTANTS threshold TYPE i VALUE 500.
+    "! The reason the posture is refused, blank when it is allowed. DEFEND always is; ATTACK needs the army value
+    "! (MIN, workers excluded) to reach the threshold.
+    CLASS-METHODS refusal IMPORTING posture TYPE csequence army_value TYPE i RETURNING VALUE(text) TYPE string.
+ENDCLASS.
+
+CLASS lcl_posture IMPLEMENTATION.
+  METHOD refusal.
+    " ponytail: 50-character message limit; worst case is 37 (a 10-digit army value)
+    text = SWITCH #( posture
+             WHEN 'DEFEND' THEN ``
+             WHEN 'ATTACK' THEN COND #( WHEN army_value >= threshold THEN ``
+                                        ELSE |Army { army_value } MIN, attack needs { threshold }| )
+             ELSE |Posture { posture } unknown| ).
+  ENDMETHOD.
+ENDCLASS.
+
 CLASS lhc_division DEFINITION INHERITING FROM cl_abap_behavior_handler.
   PRIVATE SECTION.
+    METHODS setposture FOR MODIFY
+      IMPORTING keys FOR ACTION division~setposture.
     METHODS releaseorder FOR MODIFY
       IMPORTING keys FOR ACTION division~releaseorder.
     METHODS getdefaultsforreleaseorder FOR READ
@@ -769,9 +1060,76 @@ CLASS lhc_division DEFINITION INHERITING FROM cl_abap_behavior_handler.
       IMPORTING keys FOR FUNCTION division~getdefaultsforplanrequirement RESULT result.
     METHODS runmrp FOR MODIFY
       IMPORTING keys FOR ACTION division~runmrp.
+    "! The division's time: the referee's game clock, else (not yet written) the latest event.
+    METHODS clock_of IMPORTING division      TYPE sysuuid_x16
+                               game_clock    TYPE i
+                     RETURNING VALUE(seconds) TYPE i.
 ENDCLASS.
 
 CLASS lhc_division IMPLEMENTATION.
+  METHOD clock_of.
+    IF game_clock > 0.
+      seconds = game_clock.
+    ELSE.
+      SELECT MAX( game_seconds ) FROM zsce_event WHERE division_uuid = @division INTO @seconds.
+    ENDIF.
+  ENDMETHOD.
+
+  METHOD setposture.
+    " the posture is written here and nowhere else (ArmyPosture is read-only); ATTACK is checked against the army value
+    READ ENTITIES OF zi_scegame IN LOCAL MODE
+      ENTITY division
+        FIELDS ( divisionuuid ) WITH CORRESPONDING #( keys )
+      RESULT DATA(divisions).
+
+    DATA updates TYPE TABLE FOR UPDATE zi_scedivision.
+    LOOP AT keys INTO DATA(key).
+      IF NOT line_exists( divisions[ %tky = key-%tky ] ).
+        APPEND VALUE #( %tky = key-%tky ) TO failed-division.
+        APPEND VALUE #( %tky = key-%tky
+                        %msg = new_message_with_text( severity = if_abap_behv_message=>severity-error
+                                                      text     = |Division not found| ) )
+               TO reported-division.
+        CONTINUE.
+      ENDIF.
+      " a division without army events has no row: army value 0
+      SELECT SINGLE armyvaluemin FROM zi_scedivisionarmyvalue
+        WHERE divisionuuid = @key-divisionuuid
+        INTO @DATA(army).
+      IF sy-subrc <> 0.
+        army = 0.
+      ENDIF.
+      DATA(refusal) = lcl_posture=>refusal( posture = key-%param-posture army_value = CONV i( army ) ).
+      IF refusal IS NOT INITIAL.
+        APPEND VALUE #( %tky = key-%tky ) TO failed-division.
+        APPEND VALUE #( %tky = key-%tky
+                        %msg = new_message_with_text( severity = if_abap_behv_message=>severity-error
+                                                      text     = refusal ) )
+               TO reported-division.
+        CONTINUE.
+      ENDIF.
+      APPEND VALUE #( %tky = key-%tky armyposture = key-%param-posture ) TO updates.
+    ENDLOOP.
+
+    IF updates IS NOT INITIAL.
+      MODIFY ENTITIES OF zi_scegame IN LOCAL MODE
+        ENTITY division
+          UPDATE FIELDS ( armyposture ) WITH updates
+        FAILED DATA(update_failed) REPORTED DATA(update_reported).
+      failed-division   = CORRESPONDING #( BASE ( failed-division ) update_failed-division ).
+      reported-division = CORRESPONDING #( BASE ( reported-division ) update_reported-division ).
+      LOOP AT updates INTO DATA(update).
+        IF line_exists( update_failed-division[ %tky = update-%tky ] ).
+          CONTINUE.
+        ENDIF.
+        APPEND VALUE #( %tky = update-%tky
+                        %msg = new_message_with_text( severity = if_abap_behv_message=>severity-success
+                                                      text     = |Posture { update-armyposture }| ) )
+               TO reported-division.
+      ENDLOOP.
+    ENDIF.
+  ENDMETHOD.
+
   METHOD releaseorder.
     " Fiori releases N orders of quantity 1 (one order per produced unit, as the replay parser does).
     READ ENTITIES OF zi_scegame IN LOCAL MODE
@@ -925,12 +1283,14 @@ CLASS lhc_division IMPLEMENTATION.
                                  WHEN key-%param-quantity < 1    THEN `Quantity must be at least 1`
                                  WHEN key-%param-dueminute < 0   THEN `Due minute must not be negative` ).
       IF error IS INITIAL.
-        SELECT SINGLE matnr FROM zsce_material
+        SELECT SINGLE matnr, order_blocked FROM zsce_material
           WHERE matnr = @key-%param-material
             AND bukrs = @division-companycode
-          INTO @DATA(matnr).
+          INTO @DATA(item).
         IF sy-subrc <> 0.
           error = |Material { key-%param-material } unknown for company { division-companycode }|.
+        ELSEIF item-order_blocked = abap_true.
+          error = lcl_availability=>blocked_text( item-matnr ).
         ENDIF.
       ENDIF.
       IF error IS INITIAL.
@@ -950,7 +1310,7 @@ CLASS lhc_division IMPLEMENTATION.
       APPEND VALUE #( %tky    = key-%tky
                       %target = VALUE #( ( %cid            = |R{ lines( pirs ) + 1 }|
                                            requirementuuid = uuid
-                                           material        = matnr
+                                           material        = item-matnr
                                            quantity        = key-%param-quantity
                                            dueseconds      = key-%param-dueminute * 60 ) ) )
              TO pirs.
@@ -958,7 +1318,7 @@ CLASS lhc_division IMPLEMENTATION.
       APPEND VALUE #( %tky = key-%tky
                       %msg = new_message_with_text(
                                severity = if_abap_behv_message=>severity-success
-                               text     = |{ key-%param-quantity } × { matnr } due minute { key-%param-dueminute }| ) )
+                               text     = |{ key-%param-quantity } × { item-matnr } due minute { key-%param-dueminute }| ) )
              TO reported-division.
     ENDLOOP.
 
@@ -975,8 +1335,13 @@ CLASS lhc_division IMPLEMENTATION.
 
   METHOD getdefaultsforplanrequirement.
     " Fiori calls this before opening the dialog: due five minutes after the division's game clock
+    READ ENTITIES OF zi_scegame IN LOCAL MODE
+      ENTITY division
+        FIELDS ( gameclock ) WITH CORRESPONDING #( keys )
+      RESULT DATA(divisions).
     LOOP AT keys INTO DATA(key).
-      SELECT MAX( game_seconds ) FROM zsce_event WHERE division_uuid = @key-divisionuuid INTO @DATA(clock).
+      DATA(clock) = clock_of( division   = key-divisionuuid
+                              game_clock = VALUE #( divisions[ divisionuuid = key-divisionuuid ]-gameclock OPTIONAL ) ).
       APPEND VALUE #( %tky   = key-%tky
                       %param = VALUE #( divisionuuid = key-divisionuuid
                                         quantity     = 1
@@ -989,7 +1354,7 @@ CLASS lhc_division IMPLEMENTATION.
     " MD01, regenerative: unfirmed planned orders are deleted and planned anew by lcl_mrp; firmed ones stay
     READ ENTITIES OF zi_scegame IN LOCAL MODE
       ENTITY division
-        FIELDS ( companycode ) WITH CORRESPONDING #( keys )
+        FIELDS ( companycode gameclock ) WITH CORRESPONDING #( keys )
         RESULT DATA(divisions)
       ENTITY division BY \_requirement
         FIELDS ( divisionuuid material quantity dueseconds ) WITH CORRESPONDING #( keys )
@@ -1009,14 +1374,26 @@ CLASS lhc_division IMPLEMENTATION.
     DATA master TYPE lcl_mrp=>tt_master.
     DATA available TYPE lcl_mrp=>tt_available.
     DATA open TYPE lcl_mrp=>tt_available.
+    DATA not_orderable TYPE lcl_requirements=>tt_materials.
     DATA n TYPE i.
     LOOP AT divisions INTO DATA(division).
-      SELECT MAX( game_seconds ) FROM zsce_event WHERE division_uuid = @division-divisionuuid INTO @DATA(clock).
+      DATA(clock) = clock_of( division = division-divisionuuid game_clock = division-gameclock ).
       SELECT matnr AS material, produced_by AS producedby, prerequisite, category, build_seconds AS buildseconds,
-             supply_cost AS supplycost, supply_provided AS supplyprovided, mineral_cost AS mineralcost
+             supply_cost AS supplycost, supply_provided AS supplyprovided, mineral_cost AS mineralcost,
+             order_blocked AS blocked
         FROM zsce_material
         WHERE bukrs = @division-companycode
         INTO CORRESPONDING FIELDS OF TABLE @master.
+      " a PIR of a blocked material is left out of the run; the warning is the trace (a PIR has no exception field)
+      DATA(requirements) = VALUE lcl_mrp=>tt_pirs( FOR p IN pirs WHERE ( divisionuuid = division-divisionuuid )
+                                                   ( material = p-material quantity = p-quantity due = p-dueseconds ) ).
+      CLEAR not_orderable.
+      LOOP AT master INTO DATA(blocked_item) WHERE blocked = abap_true.
+        DELETE requirements WHERE material = blocked_item-material.
+        IF sy-subrc = 0.
+          APPEND blocked_item-material TO not_orderable.
+        ENDIF.
+      ENDLOOP.
       SELECT material, onhand AS quantity FROM zi_scedivisionstock
         WHERE divisionuuid = @division-divisionuuid AND onhand >= 1
         INTO CORRESPONDING FIELDS OF TABLE @available.
@@ -1028,8 +1405,7 @@ CLASS lhc_division IMPLEMENTATION.
       ENDLOOP.
       APPEND LINES OF open TO available.
       lcl_mrp=>plan( EXPORTING clock     = clock
-                               pirs      = VALUE #( FOR p IN pirs WHERE ( divisionuuid = division-divisionuuid )
-                                                    ( material = p-material quantity = p-quantity due = p-dueseconds ) )
+                               pirs      = requirements
                                available = available
                                open      = open
                                firmed    = VALUE #( FOR f IN old WHERE ( divisionuuid = division-divisionuuid
@@ -1119,6 +1495,13 @@ CLASS lhc_division IMPLEMENTATION.
                                text     = |Supply { figures-used_now } of { figures-capacity_now } now, | &&
                                           |{ figures-used_planned } of { figures-capacity_planned } planned| ) )
              TO reported-division.
+      " ponytail: 50-character message limit; material names are at most 28
+      LOOP AT not_orderable INTO DATA(skipped).
+        APPEND VALUE #( %tky = division-%tky
+                        %msg = new_message_with_text( severity = if_abap_behv_message=>severity-warning
+                                                      text     = |{ skipped }: not orderable| ) )
+               TO reported-division.
+      ENDLOOP.
     ENDLOOP.
   ENDMETHOD.
 ENDCLASS.

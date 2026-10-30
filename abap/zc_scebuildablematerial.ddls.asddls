@@ -38,6 +38,5 @@ define view entity ZC_SCEBuildableMaterial
       PrerequisiteOnHand,
       @EndUserText.label: 'Buildable'
       @UI.selectionField: [{ position: 10 }]
-      @Consumption.filter.defaultValue: 'X'
       Buildable
 }

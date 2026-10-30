@@ -19,7 +19,7 @@ CLASS ltc_validations IMPLEMENTATION.
   METHOD class_setup.
     sql = cl_osql_test_environment=>create(
             VALUE #( ( 'ZSCE_GAME' ) ( 'ZSCE_DIVISION' ) ( 'ZSCE_PLANT' )
-                     ( 'ZSCE_PRODORD' ) ( 'ZSCE_EVENT' ) ( 'ZSCE_MATERIAL' ) ) ).
+                     ( 'ZSCE_PRODORD' ) ( 'ZSCE_EVENT' ) ( 'ZSCE_MATERIAL' ) ( 'ZI_SCEDIVISIONSTOCK' ) ) ).
   ENDMETHOD.
 
   METHOD class_teardown.
@@ -119,12 +119,16 @@ CLASS ltc_validations IMPLEMENTATION.
 
   METHOD release_order_creates_orders.
     DATA materials TYPE STANDARD TABLE OF zsce_material WITH EMPTY KEY.
-    " Marine has a producer that is missing: without WithPrerequisites no Barracks order may appear
+    DATA stock TYPE STANDARD TABLE OF zi_scedivisionstock WITH EMPTY KEY.
+    " without WithPrerequisites no Barracks order may appear; the save needs the 3 Marines paid and their producer
     materials = VALUE #( ( material_uuid = 'CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC'
                            matnr = 'Marine' bukrs = '1000' category = 'UNIT' mineral_cost = 50 produced_by = 'Barracks' )
                          ( material_uuid = 'CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCD'
                            matnr = 'Barracks' bukrs = '1000' category = 'STRUCTURE' mineral_cost = 150 produced_by = 'SCV' ) ).
     sql->insert_test_data( materials ).
+    stock = VALUE #( divisionuuid = '88888888888888888888888888888888'
+                     ( material = 'MINERAL' onhand = 150 ) ( material = 'Barracks' onhand = 1 ) ).
+    sql->insert_test_data( stock ).
 
     MODIFY ENTITIES OF zi_scegame
       ENTITY game
@@ -247,7 +251,7 @@ CLASS ltc_requirements IMPLEMENTATION.
   METHOD class_setup.
     sql = cl_osql_test_environment=>create(
             VALUE #( ( 'ZSCE_GAME' ) ( 'ZSCE_DIVISION' ) ( 'ZSCE_PLANT' )
-                     ( 'ZSCE_PRODORD' ) ( 'ZSCE_EVENT' ) ( 'ZSCE_MATERIAL' ) ) ).
+                     ( 'ZSCE_PRODORD' ) ( 'ZSCE_EVENT' ) ( 'ZSCE_MATERIAL' ) ( 'ZI_SCEDIVISIONSTOCK' ) ) ).
   ENDMETHOD.
 
   METHOD class_teardown.
@@ -296,6 +300,7 @@ CLASS ltc_requirements IMPLEMENTATION.
     DATA materials TYPE STANDARD TABLE OF zsce_material WITH EMPTY KEY.
     DATA orders TYPE STANDARD TABLE OF zsce_prodord WITH EMPTY KEY.
     DATA released TYPE tt_count.
+    DATA stock TYPE STANDARD TABLE OF zi_scedivisionstock WITH EMPTY KEY.
     materials = VALUE #( bukrs = '1000'
       ( material_uuid = 'CCCCCCCCCCCCCCCCCCCCCCCCCCCCCC01' matnr = 'Marine' category = 'UNIT' mineral_cost = 50
         produced_by = 'Barracks' )
@@ -313,6 +318,9 @@ CLASS ltc_requirements IMPLEMENTATION.
       ( order_uuid = 'BBBBBBBBBBBBBBBBBBBBBBBBBBBBBB01' matnr = 'CommandCenter' order_status = 'STARTED' )
       ( order_uuid = 'BBBBBBBBBBBBBBBBBBBBBBBBBBBBBB02' matnr = 'SCV' order_status = 'RELEASED' ) ).
     sql->insert_test_data( orders ).
+    " the save prices the chain: Supply Depot 100 + Barracks 150 + 5 Marines 250, and the waiting SCV 50
+    stock = VALUE #( ( divisionuuid = division material = 'MINERAL' onhand = 550 ) ).
+    sql->insert_test_data( stock ).
 
     MODIFY ENTITIES OF zi_scegame
       ENTITY game
@@ -371,7 +379,7 @@ CLASS ltc_cancel IMPLEMENTATION.
   METHOD class_setup.
     sql = cl_osql_test_environment=>create(
             VALUE #( ( 'ZSCE_GAME' ) ( 'ZSCE_DIVISION' ) ( 'ZSCE_PLANT' )
-                     ( 'ZSCE_PRODORD' ) ( 'ZSCE_EVENT' ) ( 'ZSCE_MATERIAL' ) ) ).
+                     ( 'ZSCE_PRODORD' ) ( 'ZSCE_EVENT' ) ( 'ZSCE_MATERIAL' ) ( 'ZI_SCEPRODORDER' ) ) ).
   ENDMETHOD.
 
   METHOD class_teardown.
@@ -379,8 +387,11 @@ CLASS ltc_cancel IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD setup.
-    " one waiting order and one the bot has already queued in the game; created in the test's LUW,
-    " because READ ENTITIES and actions do not see rows committed into the OSQL doubles
+    " one waiting order and one the bot has already queued in the game. The game and division are created in
+    " the test's LUW; the orders exist before it (a new order may only be RELEASED or CONFIRMED), in the table
+    " for the save and in the ZI_SCEProdOrder double for READ ENTITIES and the action
+    DATA rows TYPE STANDARD TABLE OF zsce_prodord WITH EMPTY KEY.
+    DATA view TYPE STANDARD TABLE OF zi_sceprodorder WITH EMPTY KEY.
     sql->clear_doubles( ).
     ROLLBACK ENTITIES.
     MODIFY ENTITIES OF zi_scegame
@@ -390,19 +401,17 @@ CLASS ltc_cancel IMPLEMENTATION.
         CREATE BY \_Division FIELDS ( divisionuuid companycode divisioncode )
         WITH VALUE #( ( %cid_ref = 'g1'
                         %target  = VALUE #( ( %cid = 'd1' divisionuuid = division companycode = '1000' divisioncode = 'P1' ) ) ) )
-      ENTITY division
-        CREATE BY \_ProdOrder FIELDS ( orderuuid material quantity orderstatus )
-        WITH VALUE #( ( %cid_ref = 'd1'
-                        %target  = VALUE #( ( %cid = 'o1' orderuuid = waiting material = 'Marine' quantity = 1
-                                              orderstatus = 'RELEASED' )
-                                            ( %cid = 'o2' orderuuid = started material = 'Marine' quantity = 1
-                                              orderstatus = 'STARTED' )
-                                            ( %cid = 'o3' orderuuid = confirmed material = 'Marine' quantity = 1
-                                              orderstatus = 'CONFIRMED' )
-                                            ( %cid = 'o4' orderuuid = cancelling material = 'Marine' quantity = 1
-                                              orderstatus = 'CANCELLING' ) ) ) )
       MAPPED DATA(mapped) FAILED DATA(failed) REPORTED DATA(reported).
     cl_abap_unit_assert=>assert_initial( act = failed msg = 'seed must be accepted' ).
+    rows = VALUE #( division_uuid = division matnr = 'Marine' quantity = 1
+                    ( order_uuid = waiting    order_status = 'RELEASED' )
+                    ( order_uuid = started    order_status = 'STARTED' )
+                    ( order_uuid = confirmed  order_status = 'CONFIRMED' )
+                    ( order_uuid = cancelling order_status = 'CANCELLING' ) ).
+    view = VALUE #( FOR r IN rows ( orderuuid = r-order_uuid divisionuuid = division gameuuid = game
+                                    material = r-matnr quantity = r-quantity orderstatus = r-order_status ) ).
+    sql->insert_test_data( rows ).
+    sql->insert_test_data( view ).
   ENDMETHOD.
 
   METHOD order_of.
@@ -513,6 +522,7 @@ CLASS ltc_mrp DEFINITION FINAL FOR TESTING
     METHODS planned_worker_builds_depot FOR TESTING.
     METHODS blocked_worker_gives_nothing FOR TESTING.
     METHODS short_in_the_precedence FOR TESTING.
+    METHODS blocked_need_not_proposed FOR TESTING.
 ENDCLASS.
 
 CLASS ltc_mrp IMPLEMENTATION.
@@ -570,6 +580,19 @@ CLASS ltc_mrp IMPLEMENTATION.
               ( material = 'BarracksTechLab' quantity = 1 start = 177 finish = 195 plannedfor = 'Marauder' )
               ( material = 'Barracks'        quantity = 1 start = 131 finish = 177 plannedfor = 'BarracksTechLab' )
               ( material = 'SupplyDepot'     quantity = 1 start = 110 finish = 131 plannedfor = 'Barracks' ) ) ).
+  ENDMETHOD.
+
+  METHOD blocked_need_not_proposed.
+    " as marauders_pull_the_tech_chain, but the TechLab is blocked for orders: no TechLab is proposed; the producer is
+    DATA(master) = terran( ).
+    master[ material = 'BarracksTechLab' ]-blocked = abap_true.
+    DATA(plan) = lcl_mrp=>plan( clock  = 0
+                                pirs   = VALUE #( ( material = 'Marauder' quantity = 10 due = 300 ) )
+                                available = start_stock( )
+                                master = master ).
+    cl_abap_unit_assert=>assert_false( xsdbool( line_exists( plan[ material = 'BarracksTechLab' ] ) ) ).
+    cl_abap_unit_assert=>assert_true( xsdbool( line_exists( plan[ material = 'Barracks' ] ) ) ).
+    cl_abap_unit_assert=>assert_equals( act = lines( plan ) exp = 4 msg = 'two Marauder lots, the Barracks and its depot' ).
   ENDMETHOD.
 
   METHOD one_barracks_for_two_targets.
@@ -1134,13 +1157,58 @@ CLASS ltc_mrp_actions DEFINITION FINAL FOR TESTING
     METHODS run_mrp_keeps_firmed FOR TESTING RAISING cx_static_check.
     METHODS run_mrp_supplies_open_orders FOR TESTING RAISING cx_static_check.
     METHODS run_mrp_two_divisions FOR TESTING RAISING cx_static_check.
+    " Part 2: the referee's game clock, and blocked materials
+    CONSTANTS protoss_game TYPE sysuuid_x16 VALUE 'AD000000000000000000000000000010'.
+    CONSTANTS protoss      TYPE sysuuid_x16 VALUE 'AD000000000000000000000000000011'.
+    METHODS defaults_use_game_clock FOR TESTING RAISING cx_static_check.
+    METHODS defaults_without_clock FOR TESTING RAISING cx_static_check.
+    METHODS run_mrp_uses_game_clock FOR TESTING RAISING cx_static_check.
+    METHODS plan_requirement_blocked FOR TESTING RAISING cx_static_check.
+    METHODS run_mrp_skips_blocked FOR TESTING RAISING cx_static_check.
+    TYPES tt_orders TYPE STANDARD TABLE OF zsce_prodord WITH EMPTY KEY.
+    METHODS persisted_divisions IMPORTING clock TYPE i DEFAULT 0.
+    METHODS persisted IMPORTING orders TYPE tt_orders.
 ENDCLASS.
 
 CLASS ltc_mrp_actions IMPLEMENTATION.
   METHOD class_setup.
     sql = cl_osql_test_environment=>create(
             VALUE #( ( 'ZSCE_GAME' ) ( 'ZSCE_DIVISION' ) ( 'ZSCE_PLANT' ) ( 'ZSCE_PRODORD' ) ( 'ZSCE_EVENT' )
-                     ( 'ZSCE_MATERIAL' ) ( 'ZSCE_PIR' ) ( 'ZSCE_PLANORD' ) ) ).
+                     ( 'ZSCE_MATERIAL' ) ( 'ZSCE_PIR' ) ( 'ZSCE_PLANORD' )
+                     ( 'ZI_SCEDIVISIONSTOCK' ) ( 'ZI_SCEPRODORDER' ) ( 'ZI_SCEGAME' ) ( 'ZI_SCEDIVISION' )
+                     ( 'ZI_SCEPIR' ) ) ).
+  ENDMETHOD.
+
+  METHOD persisted_divisions.
+    " setup's game and divisions as rows that exist before the test's LUW: runMrp reads the open orders by
+    " association, and a division created in the LUW has no persisted children to read
+    DATA games TYPE STANDARD TABLE OF zsce_game WITH EMPTY KEY.
+    DATA game_view TYPE STANDARD TABLE OF zi_scegame WITH EMPTY KEY.
+    DATA divisions TYPE STANDARD TABLE OF zsce_division WITH EMPTY KEY.
+    DATA division_view TYPE STANDARD TABLE OF zi_scedivision WITH EMPTY KEY.
+    ROLLBACK ENTITIES.
+    games = VALUE #( ( game_uuid = game replay_hash = 'MRP' ) ).
+    game_view = VALUE #( ( gameuuid = game replayhash = 'MRP' ) ).
+    divisions = VALUE #( game_uuid = game bukrs = '1000' game_clock = clock
+                         ( division_uuid = division division_code = 'P1' )
+                         ( division_uuid = division2 division_code = 'P2' ) ).
+    division_view = VALUE #( FOR d IN divisions ( divisionuuid = d-division_uuid gameuuid = game
+                                                  companycode = d-bukrs divisioncode = d-division_code
+                                                  gameclock = d-game_clock ) ).
+    sql->insert_test_data( games ).
+    sql->insert_test_data( game_view ).
+    sql->insert_test_data( divisions ).
+    sql->insert_test_data( division_view ).
+  ENDMETHOD.
+
+  METHOD persisted.
+    " open production orders exist before the test's LUW (the save checks new ones only): in the table and in
+    " the ZI_SCEProdOrder double, which READ ENTITIES reads
+    DATA view TYPE STANDARD TABLE OF zi_sceprodorder WITH EMPTY KEY.
+    view = VALUE #( FOR o IN orders ( orderuuid = o-order_uuid divisionuuid = o-division_uuid gameuuid = game
+                                      material = o-matnr quantity = o-quantity orderstatus = o-order_status ) ).
+    sql->insert_test_data( orders ).
+    sql->insert_test_data( view ).
   ENDMETHOD.
 
   METHOD class_teardown.
@@ -1233,7 +1301,144 @@ CLASS ltc_mrp_actions IMPLEMENTATION.
                                         msg = 'the bound division is passed to the value help' ).
   ENDMETHOD.
 
+  METHOD defaults_use_game_clock.
+    " the referee's clock wins over the latest event: 600 s = minute 10, plus 5
+    persisted_divisions( clock = 600 ).
+    DATA events TYPE STANDARD TABLE OF zsce_event WITH EMPTY KEY.
+    events = VALUE #( ( event_uuid = 'AD0000000000000000000000000000E1' division_uuid = division game_seconds = 125
+                        mvt_type = '501' matnr = 'MINERAL' quantity = 40 mineral_value = 40 ) ).
+    sql->insert_test_data( events ).
+
+    READ ENTITIES OF zi_scegame
+      ENTITY division
+        EXECUTE getdefaultsforplanrequirement
+          FROM VALUE #( ( divisionuuid = division ) )
+        RESULT DATA(defaults).
+
+    cl_abap_unit_assert=>assert_equals( act = defaults[ 1 ]-%param-dueminute exp = 15 msg = 'game clock 600 s = minute 10, plus 5' ).
+  ENDMETHOD.
+
+  METHOD defaults_without_clock.
+    " RF4: a division the referee never wrote keeps today's result, the latest event
+    persisted_divisions( ).
+    DATA events TYPE STANDARD TABLE OF zsce_event WITH EMPTY KEY.
+    events = VALUE #( ( event_uuid = 'AD0000000000000000000000000000E1' division_uuid = division game_seconds = 125
+                        mvt_type = '501' matnr = 'MINERAL' quantity = 40 mineral_value = 40 ) ).
+    sql->insert_test_data( events ).
+
+    READ ENTITIES OF zi_scegame
+      ENTITY division
+        EXECUTE getdefaultsforplanrequirement
+          FROM VALUE #( ( divisionuuid = division ) )
+        RESULT DATA(defaults).
+
+    cl_abap_unit_assert=>assert_equals( act = defaults[ 1 ]-%param-dueminute exp = 7 msg = 'event 125 s = minute 2, plus 5' ).
+  ENDMETHOD.
+
+  METHOD run_mrp_uses_game_clock.
+    " clock 400 s, latest event 100 s: the lot (5 Marines due 450 s) starts at 360 s, before the clock
+    persisted_divisions( clock = 400 ).
+    DATA events TYPE STANDARD TABLE OF zsce_event WITH EMPTY KEY.
+    events = VALUE #( ( event_uuid = 'AD0000000000000000000000000000E5' division_uuid = division game_seconds = 100
+                        mvt_type = '501' matnr = 'MINERAL' quantity = 40 mineral_value = 40 ) ).
+    sql->insert_test_data( events ).
+    MODIFY ENTITIES OF zi_scegame
+      ENTITY division
+        CREATE BY \_requirement FIELDS ( requirementuuid material quantity dueseconds )
+        WITH VALUE #( ( divisionuuid = division
+                        %target = VALUE #( ( %cid = 'r1' requirementuuid = 'AD000000000000000000000000000005'
+                                             material = 'Marine' quantity = 5 dueseconds = 450 ) ) ) )
+      FAILED DATA(seed_failed).
+    cl_abap_unit_assert=>assert_initial( act = seed_failed msg = 'seed must be accepted' ).
+    persisted( VALUE #( division_uuid = division quantity = 1
+                        ( order_uuid = 'AD000000000000000000000000000006' matnr = 'Barracks' order_status = 'RELEASED' ) ) ).
+
+    MODIFY ENTITIES OF zi_scegame
+      ENTITY division
+        EXECUTE runmrp FROM VALUE #( ( divisionuuid = division ) )
+      FAILED DATA(failed) REPORTED DATA(reported).
+    COMMIT ENTITIES RESPONSE OF zi_scegame
+      FAILED DATA(commit_failed).
+
+    cl_abap_unit_assert=>assert_initial( act = failed-division msg = 'the run must not fail' ).
+    cl_abap_unit_assert=>assert_initial( act = commit_failed msg = 'the plan must save' ).
+    SELECT start_seconds, exception_text FROM zsce_planord WHERE division_uuid = @division INTO TABLE @DATA(plan).
+    cl_abap_unit_assert=>assert_equals( act = lines( plan ) exp = 1 ).
+    cl_abap_unit_assert=>assert_equals( act = plan[ 1 ]-start_seconds exp = 360 ).
+    cl_abap_unit_assert=>assert_equals( act = plan[ 1 ]-exception_text exp = 'start in the past'
+                                        msg = 'the lot starts before the game clock, not before the latest event' ).
+    cl_abap_unit_assert=>assert_equals( act = reported-division[ 1 ]-%msg->if_message~get_text( )
+                                        exp = `MRP at 400 s: planned orders 1, exceptions 1` ).
+  ENDMETHOD.
+
+  METHOD plan_requirement_blocked.
+    " P1-09: a Protoss division; Archon is in its master but blocked for orders
+    DATA materials TYPE STANDARD TABLE OF zsce_material WITH EMPTY KEY.
+    materials = VALUE #( bukrs = '3000'
+      ( material_uuid = 'AD0000000000000000000000000000B1' matnr = 'Archon' category = 'UNIT' order_blocked = 'X' )
+      ( material_uuid = 'AD0000000000000000000000000000B2' matnr = 'Zealot' category = 'UNIT' ) ).
+    sql->insert_test_data( materials ).
+    MODIFY ENTITIES OF zi_scegame
+      ENTITY game
+        CREATE FIELDS ( gameuuid replayhash )
+        WITH VALUE #( ( %cid = 'g2' gameuuid = protoss_game replayhash = 'PROTOSS' ) )
+        CREATE BY \_Division FIELDS ( divisionuuid companycode divisioncode )
+        WITH VALUE #( ( %cid_ref = 'g2'
+                        %target  = VALUE #( ( %cid = 'd3' divisionuuid = protoss companycode = '3000' divisioncode = 'P3' ) ) ) )
+      FAILED DATA(seed_failed).
+    cl_abap_unit_assert=>assert_initial( act = seed_failed msg = 'seed must be accepted' ).
+
+    MODIFY ENTITIES OF zi_scegame
+      ENTITY division
+        EXECUTE planrequirement
+          FROM VALUE #( ( divisionuuid = protoss %param = VALUE #( material = 'Archon' quantity = 1 dueminute = 8 ) ) )
+      FAILED DATA(failed) REPORTED DATA(reported).
+
+    cl_abap_unit_assert=>assert_not_initial( act = failed-division msg = 'a blocked material must be refused' ).
+    cl_abap_unit_assert=>assert_equals( act = reported-division[ 1 ]-%msg->if_message~get_text( )
+                                        exp = `Archon cannot be ordered` ).
+    COMMIT ENTITIES.
+    SELECT COUNT( * ) FROM zsce_pir INTO @DATA(pirs).
+    cl_abap_unit_assert=>assert_equals( act = pirs exp = 0 msg = 'nothing planned' ).
+  ENDMETHOD.
+
+  METHOD run_mrp_skips_blocked.
+    " P1-09, spec 5.4: a PIR of a blocked material (a direct write, no action refused it) is left out of the run
+    persisted_divisions( ).
+    DATA materials TYPE STANDARD TABLE OF zsce_material WITH EMPTY KEY.
+    DATA pirs TYPE STANDARD TABLE OF zsce_pir WITH EMPTY KEY.
+    DATA pir_view TYPE STANDARD TABLE OF zi_scepir WITH EMPTY KEY.
+    materials = VALUE #( bukrs = '1000'
+      ( material_uuid = 'AD0000000000000000000000000000B3' matnr = 'Archon' category = 'UNIT' build_seconds = 12
+        order_blocked = 'X' ) ).
+    sql->insert_test_data( materials ).
+    pirs = VALUE #( ( pir_uuid = 'AD000000000000000000000000000005' division_uuid = division matnr = 'Archon'
+                      quantity = 1 due_seconds = 600 ) ).
+    pir_view = VALUE #( FOR p IN pirs ( requirementuuid = p-pir_uuid divisionuuid = p-division_uuid gameuuid = game
+                                        material = p-matnr quantity = p-quantity dueseconds = p-due_seconds ) ).
+    sql->insert_test_data( pirs ).
+    sql->insert_test_data( pir_view ).
+
+    MODIFY ENTITIES OF zi_scegame
+      ENTITY division
+        EXECUTE runmrp FROM VALUE #( ( divisionuuid = division ) )
+      FAILED DATA(failed) REPORTED DATA(reported).
+    COMMIT ENTITIES RESPONSE OF zi_scegame
+      FAILED DATA(commit_failed).
+
+    cl_abap_unit_assert=>assert_initial( act = failed-division msg = 'the run must not fail' ).
+    cl_abap_unit_assert=>assert_initial( act = commit_failed ).
+    SELECT COUNT( * ) FROM zsce_planord WHERE division_uuid = @division INTO @DATA(planned).
+    cl_abap_unit_assert=>assert_equals( act = planned exp = 0 msg = 'no Archon order is planned' ).
+    DATA(texts) = VALUE string_table( FOR r IN reported-division ( r-%msg->if_message~get_text( ) ) ).
+    cl_abap_unit_assert=>assert_table_contains( line = `Archon: not orderable` table = texts ).
+    cl_abap_unit_assert=>assert_equals( act = reported-division[ 1 ]-%msg->if_message~get_text( )
+                                        exp = `MRP at 0 s: planned orders 0, exceptions 0`
+                                        msg = 'the run itself reports first' ).
+  ENDMETHOD.
+
   METHOD run_mrp_replaces_old_plan.
+    persisted_divisions( ).
     DATA events TYPE STANDARD TABLE OF zsce_event WITH EMPTY KEY.
     events = VALUE #( ( event_uuid = 'AD0000000000000000000000000000E2' division_uuid = division game_seconds = 100
                         mvt_type = '501' matnr = 'MINERAL' quantity = 40 mineral_value = 40 ) ).
@@ -1250,14 +1455,11 @@ CLASS ltc_mrp_actions IMPLEMENTATION.
         WITH VALUE #( ( divisionuuid = division
                         %target = VALUE #( ( %cid = 'p1' plannedorderuuid = old material = 'Marine' quantity = 1
                                              startseconds = 1 finishseconds = 2 ) ) ) )
-        CREATE BY \_prodorder FIELDS ( orderuuid material quantity orderstatus )
-        WITH VALUE #( ( divisionuuid = division
-                        %target = VALUE #( ( %cid = 'o1' orderuuid = 'AD000000000000000000000000000006'
-                                             material = 'Barracks' quantity = 1 orderstatus = 'RELEASED' )
-                                           ( %cid = 'o2' orderuuid = 'AD000000000000000000000000000007'
-                                             material = 'Marine' quantity = 1 orderstatus = 'CANCELLING' ) ) ) )
       FAILED DATA(seed_failed).
     cl_abap_unit_assert=>assert_initial( act = seed_failed msg = 'seed must be accepted' ).
+    persisted( VALUE #( division_uuid = division quantity = 1
+                        ( order_uuid = 'AD000000000000000000000000000006' matnr = 'Barracks' order_status = 'RELEASED' )
+                        ( order_uuid = 'AD000000000000000000000000000007' matnr = 'Marine' order_status = 'CANCELLING' ) ) ).
 
     MODIFY ENTITIES OF zi_scegame
       ENTITY division
@@ -1283,6 +1485,10 @@ CLASS ltc_mrp_actions IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD convert_creates_released.
+    " the save checks the 5 new orders: Marine costs nothing in this master, its Barracks is on hand
+    DATA stock TYPE STANDARD TABLE OF zi_scedivisionstock WITH EMPTY KEY.
+    stock = VALUE #( ( divisionuuid = division material = 'Barracks' onhand = 1 ) ).
+    sql->insert_test_data( stock ).
     MODIFY ENTITIES OF zi_scegame
       ENTITY division
         CREATE BY \_plannedorder FIELDS ( plannedorderuuid material quantity startseconds finishseconds )
@@ -1393,6 +1599,7 @@ CLASS ltc_mrp_actions IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD run_mrp_keeps_firmed.
+    persisted_divisions( ).
     DATA events TYPE STANDARD TABLE OF zsce_event WITH EMPTY KEY.
     events = VALUE #( ( event_uuid = 'AD0000000000000000000000000000E3' division_uuid = division game_seconds = 100
                         mvt_type = '501' matnr = 'MINERAL' quantity = 40 mineral_value = 40 ) ).
@@ -1414,14 +1621,11 @@ CLASS ltc_mrp_actions IMPLEMENTATION.
                                              firmed = abap_true )
                                            ( %cid = 'p2' plannedorderuuid = old material = 'Marauder' quantity = 1
                                              startseconds = 1 finishseconds = 2 ) ) ) )
-        CREATE BY \_prodorder FIELDS ( orderuuid material quantity orderstatus )
-        WITH VALUE #( ( divisionuuid = division
-                        %target = VALUE #( ( %cid = 'o1' orderuuid = 'AD000000000000000000000000000006'
-                                             material = 'Barracks' quantity = 1 orderstatus = 'RELEASED' )
-                                           ( %cid = 'o2' orderuuid = 'AD000000000000000000000000000007'
-                                             material = 'CommandCenter' quantity = 1 orderstatus = 'STARTED' ) ) ) )
       FAILED DATA(seed_failed).
     cl_abap_unit_assert=>assert_initial( act = seed_failed msg = 'seed must be accepted' ).
+    persisted( VALUE #( division_uuid = division quantity = 1
+                        ( order_uuid = 'AD000000000000000000000000000006' matnr = 'Barracks' order_status = 'RELEASED' )
+                        ( order_uuid = 'AD000000000000000000000000000007' matnr = 'CommandCenter' order_status = 'STARTED' ) ) ).
 
     MODIFY ENTITIES OF zi_scegame
       ENTITY division
@@ -1449,26 +1653,18 @@ CLASS ltc_mrp_actions IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD run_mrp_supplies_open_orders.
+    persisted_divisions( ).
     " no target. On order: a Command Center (15), an SCV (1) and 8 Marauders (16): 17 of 15, so a depot at the clock
     DATA events TYPE STANDARD TABLE OF zsce_event WITH EMPTY KEY.
     events = VALUE #( ( event_uuid = 'AD0000000000000000000000000000E4' division_uuid = division game_seconds = 100
                         mvt_type = '501' matnr = 'MINERAL' quantity = 40 mineral_value = 40 ) ).
     sql->insert_test_data( events ).
     add_supply_materials( ).
-    MODIFY ENTITIES OF zi_scegame
-      ENTITY division
-        CREATE BY \_prodorder FIELDS ( orderuuid material quantity orderstatus )
-        WITH VALUE #( ( divisionuuid = division
-                        %target = VALUE #( ( %cid = 'o1' orderuuid = 'AD00000000000000000000000000000D'
-                                             material = 'CommandCenter' quantity = 1 orderstatus = 'STARTED' )
-                                           ( %cid = 'o2' orderuuid = 'AD00000000000000000000000000000E'
-                                             material = 'SCV' quantity = 1 orderstatus = 'STARTED' )
-                                           ( %cid = 'o3' orderuuid = 'AD00000000000000000000000000000F'
-                                             material = 'Marauder' quantity = 8 orderstatus = 'RELEASED' )
-                                           ( %cid = 'o4' orderuuid = 'AD000000000000000000000000000010'
-                                             material = 'Marauder' quantity = 9 orderstatus = 'CANCELLING' ) ) ) )
-      FAILED DATA(seed_failed).
-    cl_abap_unit_assert=>assert_initial( act = seed_failed msg = 'seed must be accepted' ).
+    persisted( VALUE #( division_uuid = division
+      ( order_uuid = 'AD00000000000000000000000000000D' matnr = 'CommandCenter' quantity = 1 order_status = 'STARTED' )
+      ( order_uuid = 'AD00000000000000000000000000000E' matnr = 'SCV' quantity = 1 order_status = 'STARTED' )
+      ( order_uuid = 'AD00000000000000000000000000000F' matnr = 'Marauder' quantity = 8 order_status = 'RELEASED' )
+      ( order_uuid = 'AD000000000000000000000000000010' matnr = 'Marauder' quantity = 9 order_status = 'CANCELLING' ) ) ).
 
     MODIFY ENTITIES OF zi_scegame
       ENTITY division
@@ -1494,6 +1690,7 @@ CLASS ltc_mrp_actions IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD run_mrp_two_divisions.
+    persisted_divisions( ).
     " each division has a firmed Marine lot and its own open Barracks; one call runs both
     MODIFY ENTITIES OF zi_scegame
       ENTITY division
@@ -1504,12 +1701,10 @@ CLASS ltc_mrp_actions IMPLEMENTATION.
                       ( divisionuuid = division2
                         %target = VALUE #( ( %cid = 'p2' plannedorderuuid = kept2 material = 'Marine' quantity = 5
                                              startseconds = 310 finishseconds = 400 firmed = abap_true ) ) ) )
-        CREATE BY \_prodorder FIELDS ( orderuuid material quantity orderstatus )
-        WITH VALUE #( ( divisionuuid = division
-                        %target = VALUE #( ( %cid = 'o1' orderuuid = 'AD00000000000000000000000000000C'
-                                             material = 'Barracks' quantity = 1 orderstatus = 'RELEASED' ) ) ) )
       FAILED DATA(seed_failed).
     cl_abap_unit_assert=>assert_initial( act = seed_failed msg = 'seed must be accepted' ).
+    persisted( VALUE #( ( order_uuid = 'AD00000000000000000000000000000C' division_uuid = division
+                          matnr = 'Barracks' quantity = 1 order_status = 'RELEASED' ) ) ).
 
     MODIFY ENTITIES OF zi_scegame
       ENTITY division
@@ -2321,5 +2516,806 @@ CLASS ltc_pm IMPLEMENTATION.
     cl_abap_unit_assert=>assert_true(
       act = xsdbool( line_exists( commit_failed-event[ eventuuid = 'AE0000000000000000000000000000D2' ] ) )
       msg = 'a 101 with a maintenance order is refused on save' ).
+  ENDMETHOD.
+ENDCLASS.
+
+CLASS ltc_availability DEFINITION FINAL FOR TESTING
+  DURATION SHORT RISK LEVEL HARMLESS.
+  PRIVATE SECTION.
+    METHODS admits_what_is_paid FOR TESTING.
+    METHODS refuses_over_budget FOR TESTING.
+    METHODS gas_is_checked FOR TESTING.
+    METHODS set_is_priced_together FOR TESTING.
+    METHODS missing_producer FOR TESTING.
+    METHODS producer_in_same_set FOR TESTING.
+    METHODS blocked_first FOR TESTING.
+    METHODS negative_quantity FOR TESTING.
+    METHODS every_text_fits FOR TESTING.
+ENDCLASS.
+
+CLASS ltc_availability IMPLEMENTATION.
+  METHOD admits_what_is_paid.
+    cl_abap_unit_assert=>assert_initial( lcl_availability=>check(
+      new           = VALUE #( ( material = 'Marine' quantity = 5 mineral = 50 producer = 'Barracks' ) )
+      committed_min = 0 committed_gas = 0 on_hand_min = 300 on_hand_gas = 0
+      covered       = VALUE #( ( CONV #( 'Barracks' ) ) ) ) ).
+  ENDMETHOD.
+
+  METHOD refuses_over_budget.
+    cl_abap_unit_assert=>assert_equals(
+      act = lcl_availability=>check(
+              new           = VALUE #( ( material = 'Marine' quantity = 5 mineral = 50 producer = 'Barracks' ) )
+              committed_min = 100 committed_gas = 0 on_hand_min = 300 on_hand_gas = 0
+              covered       = VALUE #( ( CONV #( 'Barracks' ) ) ) )
+      exp = `Over budget: 250 MIN needed, 200 available` ).
+  ENDMETHOD.
+
+  METHOD gas_is_checked.
+    cl_abap_unit_assert=>assert_equals(
+      act = lcl_availability=>check(
+              new           = VALUE #( ( material = 'Marauder' quantity = 1 mineral = 100 gas = 25 producer = 'Barracks' ) )
+              committed_min = 0 committed_gas = 0 on_hand_min = 500 on_hand_gas = 20
+              covered       = VALUE #( ( CONV #( 'Barracks' ) ) ) )
+      exp = `Over budget: 25 GAS needed, 20 available` ).
+  ENDMETHOD.
+
+  METHOD set_is_priced_together.
+    " each order alone is affordable; the set is not
+    cl_abap_unit_assert=>assert_equals(
+      act = lcl_availability=>check(
+              new           = VALUE #( mineral = 150 producer = 'SCV' quantity = 1
+                                       ( material = 'Barracks' ) ( material = 'Barracks' ) )
+              committed_min = 0 committed_gas = 0 on_hand_min = 200 on_hand_gas = 0
+              covered       = VALUE #( ( CONV #( 'SCV' ) ) ) )
+      exp = `Over budget: 300 MIN needed, 200 available` ).
+  ENDMETHOD.
+
+  METHOD missing_producer.
+    cl_abap_unit_assert=>assert_equals(
+      act = lcl_availability=>check(
+              new           = VALUE #( ( material = 'Zealot' quantity = 1 mineral = 100 producer = 'Gateway' ) )
+              committed_min = 0 committed_gas = 0 on_hand_min = 1000 on_hand_gas = 0
+              covered       = VALUE #( ) )
+      exp = `Needs Gateway: none on hand or ordered` ).
+  ENDMETHOD.
+
+  METHOD producer_in_same_set.
+    cl_abap_unit_assert=>assert_initial( lcl_availability=>check(
+      new           = VALUE #( quantity = 1
+                               ( material = 'Gateway' mineral = 150 producer = 'Probe' prereq = 'Pylon' )
+                               ( material = 'Zealot' mineral = 100 producer = 'Gateway' ) )
+      committed_min = 0 committed_gas = 0 on_hand_min = 250 on_hand_gas = 0
+      covered       = VALUE #( ( CONV #( 'Gateway' ) ) ( CONV #( 'Probe' ) ) ( CONV #( 'Pylon' ) ) ( CONV #( 'Zealot' ) ) ) ) ).
+  ENDMETHOD.
+
+  METHOD blocked_first.
+    cl_abap_unit_assert=>assert_equals(
+      act = lcl_availability=>check(
+              new           = VALUE #( ( material = 'Archon' quantity = 1 mineral = 175 gas = 275 blocked = abap_true ) )
+              committed_min = 0 committed_gas = 0 on_hand_min = 0 on_hand_gas = 0
+              covered       = VALUE #( ) )
+      exp = `Archon cannot be ordered` ).
+  ENDMETHOD.
+
+  METHOD negative_quantity.
+    " -3 would pay for 3 of the 9 Marines; the set is within budget either way
+    cl_abap_unit_assert=>assert_equals(
+      act = lcl_availability=>check(
+              new           = VALUE #( mineral = 50 producer = 'Barracks'
+                                       ( material = 'Marine' quantity = -3 ) ( material = 'Marine' quantity = 9 ) )
+              committed_min = 0 committed_gas = 0 on_hand_min = 500 on_hand_gas = 0
+              covered       = VALUE #( ( CONV #( 'Barracks' ) ) ) )
+      exp = `Quantity must be at least 1` ).
+  ENDMETHOD.
+
+  METHOD every_text_fits.
+    " RAP keeps 50 characters: the worst cases are 5-digit figures, a negative balance and the longest names
+    DATA(texts) = VALUE string_table(
+      ( lcl_availability=>check( new = VALUE #( ( material = 'Marine' quantity = 1 mineral = 99999 ) )
+                                 committed_min = 99999 committed_gas = 0 on_hand_min = 0 on_hand_gas = 0
+                                 covered = VALUE #( ) ) )
+      ( lcl_availability=>check( new = VALUE #( ( material = 'Marine' quantity = 1 gas = 99999 ) )
+                                 committed_min = 0 committed_gas = 99999 on_hand_min = 0 on_hand_gas = 0
+                                 covered = VALUE #( ) ) )
+      ( lcl_availability=>check( new = VALUE #( ( material = 'Colossus' quantity = 1 producer = 'RoboticsFacility' ) )
+                                 committed_min = 0 committed_gas = 0 on_hand_min = 0 on_hand_gas = 0
+                                 covered = VALUE #( ) ) )
+      ( lcl_availability=>check( new = VALUE #( ( material = 'Marine' quantity = -99999 ) )
+                                 committed_min = 0 committed_gas = 0 on_hand_min = 0 on_hand_gas = 0
+                                 covered = VALUE #( ) ) )
+      ( lcl_availability=>blocked_text( 'WarpGateResearch' ) )
+      " the status texts at the longest statuses (10 characters, the field length)
+      ( lcl_availability=>order_refusal( before = `` status = `CANCELLING` quantity = 1 ) )
+      ( lcl_availability=>order_refusal( before = `CONFIRMED` status = `CANCELLING` quantity = 1 ) )
+      ( lcl_availability=>order_refusal( before = `` status = `RELEASED` quantity = 0 ) ) ).
+    LOOP AT texts INTO DATA(text).
+      cl_abap_unit_assert=>assert_not_initial( act = text msg = |text { sy-tabix } is empty| ).
+      cl_abap_unit_assert=>assert_true( act = xsdbool( strlen( text ) <= 50 ) msg = |{ text } is longer than 50| ).
+    ENDLOOP.
+  ENDMETHOD.
+ENDCLASS.
+
+CLASS ltc_availability_actions DEFINITION FINAL FOR TESTING
+  DURATION SHORT RISK LEVEL HARMLESS.
+  PRIVATE SECTION.
+    CONSTANTS game      TYPE sysuuid_x16 VALUE 'B3000000000000000000000000000001'.
+    CONSTANTS division  TYPE sysuuid_x16 VALUE 'B3000000000000000000000000000002'.
+    CONSTANTS division2 TYPE sysuuid_x16 VALUE 'B3000000000000000000000000000003'.
+    CLASS-DATA sql TYPE REF TO if_osql_test_environment.
+    DATA persisted_orders TYPE i.
+    DATA refused TYPE i.
+    CLASS-METHODS class_setup.
+    CLASS-METHODS class_teardown.
+    METHODS setup.
+    METHODS reset.
+    METHODS stock IMPORTING of       TYPE sysuuid_x16
+                            minerals TYPE i
+                            barracks TYPE i DEFAULT 1
+                            scvs     TYPE i DEFAULT 8.
+    METHODS default_stock.
+    METHODS persisted IMPORTING of          TYPE sysuuid_x16
+                                status      TYPE zsce_prodord-order_status
+                                quantity    TYPE i DEFAULT 1
+                      RETURNING VALUE(uuid) TYPE sysuuid_x16.
+    METHODS committed_fixture.
+    METHODS finish RETURNING VALUE(refusal) TYPE string.
+    METHODS release IMPORTING of             TYPE sysuuid_x16 DEFAULT division
+                              quantity       TYPE i
+                              prerequisites  TYPE abap_boolean DEFAULT abap_false
+                    RETURNING VALUE(refusal) TYPE string.
+    METHODS create IMPORTING of             TYPE sysuuid_x16
+                             status         TYPE zsce_prodord-order_status
+                             material       TYPE zsce_prodord-matnr DEFAULT 'Marine'
+                             quantity       TYPE i DEFAULT 1
+                   RETURNING VALUE(refusal) TYPE string.
+    METHODS to_released IMPORTING order          TYPE sysuuid_x16
+                        RETURNING VALUE(refusal) TYPE string.
+    METHODS released IMPORTING of           TYPE sysuuid_x16 DEFAULT division
+                     RETURNING VALUE(count) TYPE i.
+    METHODS release_within_budget FOR TESTING RAISING cx_static_check.
+    METHODS release_over_budget FOR TESTING RAISING cx_static_check.
+    METHODS committed_counts_released FOR TESTING RAISING cx_static_check.
+    METHODS prerequisites_count_too FOR TESTING RAISING cx_static_check.
+    METHODS convert_set_refused FOR TESTING RAISING cx_static_check.
+    METHODS direct_create_checked FOR TESTING RAISING cx_static_check.
+    METHODS create_started_refused FOR TESTING RAISING cx_static_check.
+    METHODS replay_order_not_checked FOR TESTING RAISING cx_static_check.
+    METHODS refund_back_to_released FOR TESTING RAISING cx_static_check.
+    METHODS confirmed_cannot_return FOR TESTING RAISING cx_static_check.
+    METHODS divisions_are_separate FOR TESTING RAISING cx_static_check.
+    METHODS set_status IMPORTING order          TYPE sysuuid_x16
+                                 status         TYPE zsce_prodord-order_status
+                       RETURNING VALUE(refusal) TYPE string.
+    METHODS refund_from_cancelling FOR TESTING RAISING cx_static_check.
+    METHODS confirmed_cannot_start FOR TESTING RAISING cx_static_check.
+    METHODS cancelled_cannot_return FOR TESTING RAISING cx_static_check.
+    METHODS blocked_create_refused FOR TESTING RAISING cx_static_check.
+    METHODS unknown_material_refused FOR TESTING RAISING cx_static_check.
+    METHODS confirmed_needs_quantity FOR TESTING RAISING cx_static_check.
+ENDCLASS.
+
+CLASS ltc_availability_actions IMPLEMENTATION.
+  METHOD set_status.
+    MODIFY ENTITIES OF zi_scegame
+      ENTITY prodorder
+        UPDATE FIELDS ( orderstatus ) WITH VALUE #( ( orderuuid = order orderstatus = status ) )
+      FAILED DATA(failed).
+    cl_abap_unit_assert=>assert_initial( act = failed msg = 'the update is taken; the save decides' ).
+    refusal = finish( ).
+  ENDMETHOD.
+
+  METHOD refund_from_cancelling.
+    " a CANCELLING order goes back to RELEASED unchecked, like a STARTED one (division 2 has no minerals)
+    default_stock( ).
+    DATA(order) = persisted( of = division2 status = 'CANCELLING' ).
+    cl_abap_unit_assert=>assert_initial( set_status( order = order status = 'RELEASED' ) ).
+    SELECT SINGLE order_status FROM zsce_prodord WHERE order_uuid = @order INTO @DATA(status).
+    cl_abap_unit_assert=>assert_equals( act = status exp = 'RELEASED' ).
+  ENDMETHOD.
+
+  METHOD confirmed_cannot_start.
+    " CONFIRMED -> STARTED -> RELEASED would reach RELEASED without a check
+    default_stock( ).
+    DATA(order) = persisted( of = division status = 'CONFIRMED' ).
+    cl_abap_unit_assert=>assert_equals( act = set_status( order = order status = 'STARTED' )
+                                        exp = `CONFIRMED order cannot go back to STARTED` ).
+  ENDMETHOD.
+
+  METHOD cancelled_cannot_return.
+    " a cancelled order is not recycled, neither through STARTED nor directly
+    default_stock( ).
+    DATA(order) = persisted( of = division status = 'CANCELLED' ).
+    cl_abap_unit_assert=>assert_equals( act = set_status( order = order status = 'STARTED' )
+                                        exp = `CANCELLED order cannot go back to STARTED` ).
+    reset( ).
+    default_stock( ).
+    order = persisted( of = division status = 'CANCELLED' ).
+    cl_abap_unit_assert=>assert_equals( act = set_status( order = order status = 'RELEASED' )
+                                        exp = `CANCELLED order cannot go back to RELEASED` ).
+  ENDMETHOD.
+
+  METHOD blocked_create_refused.
+    default_stock( ).
+    cl_abap_unit_assert=>assert_equals( act = create( of = division status = 'RELEASED' material = 'Archon' )
+                                        exp = `Archon cannot be ordered` ).
+  ENDMETHOD.
+
+  METHOD unknown_material_refused.
+    " a Protoss unit is not in the Terran company's material master
+    default_stock( ).
+    cl_abap_unit_assert=>assert_equals( act = create( of = division status = 'RELEASED' material = 'Zealot' )
+                                        exp = `Zealot cannot be ordered` ).
+  ENDMETHOD.
+
+  METHOD confirmed_needs_quantity.
+    cl_abap_unit_assert=>assert_equals( act = create( of = division status = 'CONFIRMED' quantity = 0 )
+                                        exp = `Quantity must be at least 1` ).
+  ENDMETHOD.
+
+  METHOD class_setup.
+    " the CDS doubles: the validation reads ZI_SCEDivisionStock by SELECT, READ ENTITIES reads ZI_SCEProdOrder
+    " and ZI_SCEPlannedOrder; prior orders live in those and in their tables, so their DB status exists
+    sql = cl_osql_test_environment=>create(
+            VALUE #( ( 'ZSCE_GAME' ) ( 'ZSCE_DIVISION' ) ( 'ZSCE_PLANT' ) ( 'ZSCE_PRODORD' ) ( 'ZSCE_EVENT' )
+                     ( 'ZSCE_MATERIAL' ) ( 'ZSCE_PLANORD' )
+                     ( 'ZI_SCEDIVISIONSTOCK' ) ( 'ZI_SCEPRODORDER' ) ( 'ZI_SCEPLANNEDORDER' ) ) ).
+  ENDMETHOD.
+
+  METHOD class_teardown.
+    sql->destroy( ).
+  ENDMETHOD.
+
+  METHOD setup.
+    reset( ).
+  ENDMETHOD.
+
+  METHOD reset.
+    " the game and its two divisions are created in the test's LUW, as in ltc_mrp_actions
+    DATA materials TYPE STANDARD TABLE OF zsce_material WITH EMPTY KEY.
+    sql->clear_doubles( ).
+    ROLLBACK ENTITIES.
+    materials = VALUE #( bukrs = '1000'
+      ( material_uuid = 'B30000000000000000000000000000A1' matnr = 'Marine' category = 'UNIT'
+        mineral_cost = 50 produced_by = 'Barracks' )
+      ( material_uuid = 'B30000000000000000000000000000A2' matnr = 'Marauder' category = 'UNIT'
+        mineral_cost = 100 gas_cost = 25 produced_by = 'Barracks' )
+      ( material_uuid = 'B30000000000000000000000000000A3' matnr = 'Barracks' category = 'STRUCTURE'
+        mineral_cost = 150 produced_by = 'SCV' )
+      ( material_uuid = 'B30000000000000000000000000000A4' matnr = 'Archon' category = 'UNIT'
+        mineral_cost = 175 gas_cost = 275 order_blocked = abap_true ) ).
+    sql->insert_test_data( materials ).
+    MODIFY ENTITIES OF zi_scegame
+      ENTITY game
+        CREATE FIELDS ( gameuuid replayhash )
+        WITH VALUE #( ( %cid = 'g1' gameuuid = game replayhash = 'AVAILABILITY' ) )
+        CREATE BY \_Division FIELDS ( divisionuuid companycode divisioncode )
+        WITH VALUE #( ( %cid_ref = 'g1'
+                        %target  = VALUE #( ( %cid = 'd1' divisionuuid = division  companycode = '1000' divisioncode = 'P1' )
+                                            ( %cid = 'd2' divisionuuid = division2 companycode = '1000' divisioncode = 'P2' ) ) ) )
+      FAILED DATA(failed).
+    cl_abap_unit_assert=>assert_initial( act = failed msg = 'seed must be accepted' ).
+  ENDMETHOD.
+
+  METHOD stock.
+    DATA rows TYPE STANDARD TABLE OF zi_scedivisionstock WITH EMPTY KEY.
+    rows = VALUE #( divisionuuid = of
+                    ( material = 'MINERAL' onhand = minerals ) ( material = 'Barracks' onhand = barracks )
+                    ( material = 'SCV' onhand = scvs ) ).
+    DELETE rows WHERE onhand = 0.
+    sql->insert_test_data( rows ).
+  ENDMETHOD.
+
+  METHOD default_stock.
+    stock( of = division minerals = 300 ).
+    stock( of = division2 minerals = 0 ).
+  ENDMETHOD.
+
+  METHOD persisted.
+    DATA rows TYPE STANDARD TABLE OF zsce_prodord WITH EMPTY KEY.
+    DATA view TYPE STANDARD TABLE OF zi_sceprodorder WITH EMPTY KEY.
+    persisted_orders += 1.
+    uuid = |B4{ persisted_orders WIDTH = 30 ALIGN = RIGHT PAD = '0' }|.
+    rows = VALUE #( ( order_uuid = uuid division_uuid = of matnr = 'Marine' quantity = quantity order_status = status ) ).
+    view = VALUE #( ( orderuuid = uuid divisionuuid = of gameuuid = game material = 'Marine' quantity = quantity
+                      orderstatus = status ) ).
+    sql->insert_test_data( rows ).
+    sql->insert_test_data( view ).
+  ENDMETHOD.
+
+  METHOD committed_fixture.
+    reset( ).
+    default_stock( ).
+    persisted( of = division status = 'RELEASED' ).
+    persisted( of = division status = 'RELEASED' ).
+    persisted( of = division status = 'STARTED' ).
+    persisted( of = division status = 'STARTED' ).
+  ENDMETHOD.
+
+  METHOD finish.
+    COMMIT ENTITIES RESPONSE OF zi_scegame FAILED DATA(commit_failed) REPORTED DATA(commit_reported).
+    refused = lines( commit_failed-prodorder ).
+    IF commit_failed IS INITIAL.
+      RETURN.
+    ENDIF.
+    refusal = COND #( WHEN commit_reported-prodorder IS NOT INITIAL
+                      THEN commit_reported-prodorder[ 1 ]-%msg->if_message~get_text( )
+                      ELSE `refused without a message` ).
+  ENDMETHOD.
+
+  METHOD release.
+    MODIFY ENTITIES OF zi_scegame
+      ENTITY division
+        EXECUTE releaseorder
+          FROM VALUE #( ( divisionuuid = of
+                          %param = VALUE #( material = 'Marine' quantity = quantity withprerequisites = prerequisites ) ) )
+      FAILED DATA(failed).
+    cl_abap_unit_assert=>assert_initial( act = failed msg = 'the action takes the release; the save decides' ).
+    refusal = finish( ).
+  ENDMETHOD.
+
+  METHOD create.
+    MODIFY ENTITIES OF zi_scegame
+      ENTITY division
+        CREATE BY \_ProdOrder FIELDS ( orderuuid material quantity orderstatus )
+        WITH VALUE #( ( divisionuuid = of
+                        %target = VALUE #( ( %cid = 'o1' orderuuid = 'B6000000000000000000000000000001'
+                                             material = material quantity = quantity orderstatus = status ) ) ) )
+      FAILED DATA(failed).
+    cl_abap_unit_assert=>assert_initial( act = failed msg = 'the create is taken; the save decides' ).
+    refusal = finish( ).
+  ENDMETHOD.
+
+  METHOD to_released.
+    refusal = set_status( order = order status = 'RELEASED' ).
+  ENDMETHOD.
+
+  METHOD released.
+    SELECT COUNT( * ) FROM zsce_prodord
+      WHERE division_uuid = @of AND matnr = 'Marine' AND order_status = 'RELEASED'
+      INTO @count.
+  ENDMETHOD.
+
+  METHOD release_within_budget.
+    default_stock( ).
+    cl_abap_unit_assert=>assert_initial( release( quantity = 6 ) ).
+    cl_abap_unit_assert=>assert_equals( act = released( ) exp = 6 ).
+  ENDMETHOD.
+
+  METHOD release_over_budget.
+    default_stock( ).
+    cl_abap_unit_assert=>assert_equals( act = release( quantity = 7 ) exp = `Over budget: 350 MIN needed, 300 available` ).
+    cl_abap_unit_assert=>assert_equals( act = refused exp = 7 msg = 'every order of the set is refused' ).
+    SELECT COUNT( * ) FROM zsce_prodord INTO @DATA(saved).
+    cl_abap_unit_assert=>assert_equals( act = saved exp = 0 msg = 'nothing saved' ).
+  ENDMETHOD.
+
+  METHOD committed_counts_released.
+    " 2 RELEASED Marines wait for money (100); the 2 STARTED are paid already
+    committed_fixture( ).
+    cl_abap_unit_assert=>assert_equals( act = release( quantity = 5 ) exp = `Over budget: 250 MIN needed, 200 available` ).
+    committed_fixture( ).
+    cl_abap_unit_assert=>assert_initial( release( quantity = 4 ) ).
+    cl_abap_unit_assert=>assert_equals( act = released( ) exp = 6 ).
+  ENDMETHOD.
+
+  METHOD prerequisites_count_too.
+    " the Barracks (150) the release adds is priced with the Marine (50)
+    stock( of = division minerals = 199 barracks = 0 scvs = 1 ).
+    cl_abap_unit_assert=>assert_equals( act = release( quantity = 1 prerequisites = abap_true )
+                                        exp = `Over budget: 200 MIN needed, 199 available` ).
+    SELECT COUNT( * ) FROM zsce_prodord INTO @DATA(refused_saved).
+    cl_abap_unit_assert=>assert_equals( act = refused_saved exp = 0 msg = 'nothing saved' ).
+
+    reset( ).
+    stock( of = division minerals = 200 barracks = 0 scvs = 1 ).
+    cl_abap_unit_assert=>assert_initial( release( quantity = 1 prerequisites = abap_true ) ).
+    SELECT COUNT( * ) FROM zsce_prodord WHERE matnr = 'Barracks' INTO @DATA(barracks).
+    cl_abap_unit_assert=>assert_equals( act = barracks exp = 1 ).
+    cl_abap_unit_assert=>assert_equals( act = released( ) exp = 1 ).
+  ENDMETHOD.
+
+  METHOD convert_set_refused.
+    " two lots of 5 Marines: each affordable alone (250), not together (500)
+    DATA lots TYPE STANDARD TABLE OF zsce_planord WITH EMPTY KEY.
+    DATA view TYPE STANDARD TABLE OF zi_sceplannedorder WITH EMPTY KEY.
+    default_stock( ).
+    lots = VALUE #( division_uuid = division matnr = 'Marine' quantity = 5
+                    ( planord_uuid = 'B5000000000000000000000000000001' )
+                    ( planord_uuid = 'B5000000000000000000000000000002' ) ).
+    view = VALUE #( FOR l IN lots ( plannedorderuuid = l-planord_uuid divisionuuid = division gameuuid = game
+                                    material = 'Marine' quantity = 5 ) ).
+    sql->insert_test_data( lots ).
+    sql->insert_test_data( view ).
+
+    MODIFY ENTITIES OF zi_scegame
+      ENTITY plannedorder
+        EXECUTE convertorder FROM VALUE #( FOR l IN lots ( plannedorderuuid = l-planord_uuid ) )
+      FAILED DATA(failed).
+    cl_abap_unit_assert=>assert_initial( act = failed msg = 'the conversion is taken; the save decides' ).
+    cl_abap_unit_assert=>assert_equals( act = finish( ) exp = `Over budget: 500 MIN needed, 300 available` ).
+    SELECT COUNT( * ) FROM zsce_planord INTO @DATA(kept).
+    cl_abap_unit_assert=>assert_equals( act = kept exp = 2 msg = 'both planned orders are still there' ).
+    SELECT COUNT( * ) FROM zsce_prodord INTO @DATA(saved).
+    cl_abap_unit_assert=>assert_equals( act = saved exp = 0 ).
+  ENDMETHOD.
+
+  METHOD direct_create_checked.
+    default_stock( ).
+    cl_abap_unit_assert=>assert_equals( act = create( of = division2 status = 'RELEASED' )
+                                        exp = `Over budget: 50 MIN needed, 0 available` ).
+  ENDMETHOD.
+
+  METHOD create_started_refused.
+    default_stock( ).
+    cl_abap_unit_assert=>assert_equals( act = create( of = division status = 'STARTED' )
+                                        exp = `Orders are created RELEASED, not STARTED` ).
+  ENDMETHOD.
+
+  METHOD replay_order_not_checked.
+    " push.py: one deep create of game, division and its CONFIRMED orders; no stock at all
+    MODIFY ENTITIES OF zi_scegame
+      ENTITY game
+        CREATE FIELDS ( gameuuid replayhash )
+        WITH VALUE #( ( %cid = 'g2' gameuuid = 'B7000000000000000000000000000001' replayhash = 'REPLAY' ) )
+        CREATE BY \_Division FIELDS ( divisionuuid companycode divisioncode )
+        WITH VALUE #( ( %cid_ref = 'g2'
+                        %target  = VALUE #( ( %cid = 'r1' divisionuuid = 'B7000000000000000000000000000002'
+                                              companycode = '1000' divisioncode = 'P1' ) ) ) )
+      ENTITY division
+        CREATE BY \_ProdOrder FIELDS ( orderuuid material quantity orderstatus )
+        WITH VALUE #( ( %cid_ref = 'r1'
+                        %target  = VALUE #( ( %cid = 'o1' orderuuid = 'B7000000000000000000000000000003'
+                                              material = 'Marine' quantity = 1 orderstatus = 'CONFIRMED' ) ) ) )
+      FAILED DATA(failed).
+    cl_abap_unit_assert=>assert_initial( act = failed ).
+    cl_abap_unit_assert=>assert_initial( finish( ) ).
+    SELECT COUNT( * ) FROM zsce_prodord WHERE order_status = 'CONFIRMED' INTO @DATA(saved).
+    cl_abap_unit_assert=>assert_equals( act = saved exp = 1 ).
+  ENDMETHOD.
+
+  METHOD refund_back_to_released.
+    " the game gave the money back: the order waits again, unchecked (division 2 has no minerals)
+    default_stock( ).
+    DATA(order) = persisted( of = division2 status = 'STARTED' ).
+    cl_abap_unit_assert=>assert_initial( to_released( order ) ).
+    SELECT SINGLE order_status FROM zsce_prodord WHERE order_uuid = @order INTO @DATA(status).
+    cl_abap_unit_assert=>assert_equals( act = status exp = 'RELEASED' ).
+  ENDMETHOD.
+
+  METHOD confirmed_cannot_return.
+    default_stock( ).
+    DATA(order) = persisted( of = division status = 'CONFIRMED' ).
+    cl_abap_unit_assert=>assert_equals( act = to_released( order ) exp = `CONFIRMED order cannot go back to RELEASED` ).
+  ENDMETHOD.
+
+  METHOD divisions_are_separate.
+    " division 1's waiting orders do not spend division 2's money
+    stock( of = division minerals = 300 ).
+    stock( of = division2 minerals = 300 ).
+    persisted( of = division status = 'RELEASED' quantity = 5 ).
+    cl_abap_unit_assert=>assert_initial( release( of = division2 quantity = 6 ) ).
+    cl_abap_unit_assert=>assert_equals( act = released( division2 ) exp = 6 ).
+  ENDMETHOD.
+ENDCLASS.
+
+" Part 2: army posture. The pure decision first, then the action over the army value CDS double.
+CLASS ltc_posture DEFINITION FINAL FOR TESTING
+  DURATION SHORT RISK LEVEL HARMLESS.
+  PRIVATE SECTION.
+    METHODS defend_is_always_allowed FOR TESTING.
+    METHODS attack_below_threshold_refused FOR TESTING.
+    METHODS attack_at_threshold_allowed FOR TESTING.
+    METHODS unknown_posture_refused FOR TESTING.
+ENDCLASS.
+
+CLASS ltc_posture IMPLEMENTATION.
+  METHOD defend_is_always_allowed.
+    cl_abap_unit_assert=>assert_initial( lcl_posture=>refusal( posture = 'DEFEND' army_value = 0 ) ).
+  ENDMETHOD.
+
+  METHOD attack_below_threshold_refused.
+    cl_abap_unit_assert=>assert_equals( act = lcl_posture=>refusal( posture = 'ATTACK' army_value = 499 )
+                                        exp = `Army 499 MIN, attack needs 500` ).
+  ENDMETHOD.
+
+  METHOD attack_at_threshold_allowed.
+    cl_abap_unit_assert=>assert_initial( lcl_posture=>refusal( posture = 'ATTACK' army_value = 500 ) ).
+  ENDMETHOD.
+
+  METHOD unknown_posture_refused.
+    cl_abap_unit_assert=>assert_equals( act = lcl_posture=>refusal( posture = 'RETREAT' army_value = 900 )
+                                        exp = `Posture RETREAT unknown` ).
+  ENDMETHOD.
+ENDCLASS.
+
+CLASS ltc_posture_actions DEFINITION FINAL FOR TESTING
+  DURATION SHORT RISK LEVEL HARMLESS.
+  PRIVATE SECTION.
+    CONSTANTS game     TYPE sysuuid_x16 VALUE 'B8000000000000000000000000000001'.
+    CONSTANTS division TYPE sysuuid_x16 VALUE 'B8000000000000000000000000000002'.
+    CLASS-DATA sql TYPE REF TO if_osql_test_environment.
+    DATA refused TYPE abap_boolean.
+    DATA message TYPE string.
+    CLASS-METHODS class_setup.
+    CLASS-METHODS class_teardown.
+    METHODS setup.
+    METHODS army IMPORTING value TYPE i.
+    " one LUW: the action and its save
+    METHODS set_posture IMPORTING posture TYPE zsce_division-army_posture.
+    METHODS stored RETURNING VALUE(posture) TYPE zsce_division-army_posture.
+    METHODS attack_refused_below_500 FOR TESTING RAISING cx_static_check.
+    METHODS attack_saved_with_650 FOR TESTING RAISING cx_static_check.
+    METHODS defend_saved_without_army FOR TESTING RAISING cx_static_check.
+    METHODS attack_without_army_refused FOR TESTING RAISING cx_static_check.
+    METHODS unknown_posture_unchanged FOR TESTING RAISING cx_static_check.
+    METHODS defend_after_attack FOR TESTING RAISING cx_static_check.
+    METHODS refused_attack_keeps_attack FOR TESTING RAISING cx_static_check.
+ENDCLASS.
+
+CLASS ltc_posture_actions IMPLEMENTATION.
+  METHOD class_setup.
+    " the action reads ZI_SCEDivisionArmyValue by SELECT: doubled like ZI_SCEDivisionStock in ltc_availability_actions.
+    " A managed READ of a committed division goes through ZI_SCEGame / ZI_SCEDivision, so they are doubled as in ltc_mrp_actions.
+    sql = cl_osql_test_environment=>create( VALUE #( ( 'ZSCE_GAME' ) ( 'ZSCE_DIVISION' ) ( 'ZI_SCEDIVISIONARMYVALUE' )
+                                                     ( 'ZI_SCEGAME' ) ( 'ZI_SCEDIVISION' ) ) ).
+  ENDMETHOD.
+
+  METHOD class_teardown.
+    sql->destroy( ).
+  ENDMETHOD.
+
+  METHOD setup.
+    sql->clear_doubles( ).
+    ROLLBACK ENTITIES.
+    CLEAR: refused, message.
+    " the game and division exist before the test's LUW, in the tables and in the CDS doubles (as persisted_divisions)
+    DATA games TYPE STANDARD TABLE OF zsce_game WITH EMPTY KEY.
+    DATA game_view TYPE STANDARD TABLE OF zi_scegame WITH EMPTY KEY.
+    DATA divisions TYPE STANDARD TABLE OF zsce_division WITH EMPTY KEY.
+    DATA division_view TYPE STANDARD TABLE OF zi_scedivision WITH EMPTY KEY.
+    games = VALUE #( ( game_uuid = game replay_hash = 'POSTURE' ) ).
+    game_view = VALUE #( ( gameuuid = game replayhash = 'POSTURE' ) ).
+    divisions = VALUE #( ( division_uuid = division game_uuid = game bukrs = '1000' division_code = 'P1' ) ).
+    division_view = VALUE #( ( divisionuuid = division gameuuid = game companycode = '1000' divisioncode = 'P1' ) ).
+    sql->insert_test_data( games ).
+    sql->insert_test_data( game_view ).
+    sql->insert_test_data( divisions ).
+    sql->insert_test_data( division_view ).
+  ENDMETHOD.
+
+  METHOD army.
+    " the doubled army value is replaced, so a test can lower it between two calls
+    DATA rows TYPE STANDARD TABLE OF zi_scedivisionarmyvalue WITH EMPTY KEY.
+    rows = VALUE #( ( divisionuuid = division armyvaluemin = value ) ).
+    sql->get_double( 'ZI_SCEDIVISIONARMYVALUE' )->clear( ).
+    sql->insert_test_data( rows ).
+  ENDMETHOD.
+
+  METHOD set_posture.
+    MODIFY ENTITIES OF zi_scegame
+      ENTITY division
+        EXECUTE setposture FROM VALUE #( ( divisionuuid = division %param = VALUE #( posture = posture ) ) )
+      FAILED DATA(failed) REPORTED DATA(reported).
+    refused = xsdbool( failed-division IS NOT INITIAL ).
+    IF reported-division IS NOT INITIAL.
+      message = reported-division[ 1 ]-%msg->if_message~get_text( ).
+    ENDIF.
+    COMMIT ENTITIES RESPONSE OF zi_scegame FAILED DATA(commit_failed) REPORTED DATA(commit_reported).
+    cl_abap_unit_assert=>assert_initial( act = commit_failed msg = 'the save itself must not fail' ).
+  ENDMETHOD.
+
+  METHOD stored.
+    SELECT SINGLE army_posture FROM zsce_division WHERE division_uuid = @division INTO @posture.
+  ENDMETHOD.
+
+  METHOD attack_refused_below_500.
+    army( 300 ).
+    set_posture( 'ATTACK' ).
+    cl_abap_unit_assert=>assert_true( refused ).
+    cl_abap_unit_assert=>assert_equals( act = message exp = `Army 300 MIN, attack needs 500` ).
+    cl_abap_unit_assert=>assert_initial( act = stored( ) msg = 'the posture stays as it was' ).
+  ENDMETHOD.
+
+  METHOD attack_saved_with_650.
+    army( 650 ).
+    set_posture( 'ATTACK' ).
+    cl_abap_unit_assert=>assert_false( refused ).
+    cl_abap_unit_assert=>assert_equals( act = message exp = `Posture ATTACK` ).
+    cl_abap_unit_assert=>assert_equals( act = stored( ) exp = 'ATTACK' ).
+  ENDMETHOD.
+
+  METHOD defend_saved_without_army.
+    " a division without a single army event has no army value row at all
+    set_posture( 'DEFEND' ).
+    cl_abap_unit_assert=>assert_false( refused ).
+    cl_abap_unit_assert=>assert_equals( act = stored( ) exp = 'DEFEND' ).
+  ENDMETHOD.
+
+  METHOD attack_without_army_refused.
+    set_posture( 'ATTACK' ).
+    cl_abap_unit_assert=>assert_true( refused ).
+    cl_abap_unit_assert=>assert_equals( act = message exp = `Army 0 MIN, attack needs 500` ).
+    cl_abap_unit_assert=>assert_initial( stored( ) ).
+  ENDMETHOD.
+
+  METHOD unknown_posture_unchanged.
+    army( 900 ).
+    set_posture( 'RETREA' ).
+    cl_abap_unit_assert=>assert_true( refused ).
+    cl_abap_unit_assert=>assert_equals( act = message exp = `Posture RETREA unknown` ).
+    cl_abap_unit_assert=>assert_initial( stored( ) ).
+  ENDMETHOD.
+
+  METHOD defend_after_attack.
+    army( 650 ).
+    " two LUWs, as two OData requests of the planner
+    set_posture( 'ATTACK' ).
+    cl_abap_unit_assert=>assert_equals( act = stored( ) exp = 'ATTACK' ).
+    set_posture( 'DEFEND' ).
+    cl_abap_unit_assert=>assert_false( refused ).
+    cl_abap_unit_assert=>assert_equals( act = stored( ) exp = 'DEFEND' ).
+  ENDMETHOD.
+
+  METHOD refused_attack_keeps_attack.
+    " the army shrank after ATTACK was set: a refused second ATTACK must not blank or change the stored posture
+    army( 650 ).
+    set_posture( 'ATTACK' ).
+    cl_abap_unit_assert=>assert_false( refused ).
+    cl_abap_unit_assert=>assert_equals( act = stored( ) exp = 'ATTACK' ).
+    army( 300 ).
+    set_posture( 'ATTACK' ).
+    cl_abap_unit_assert=>assert_true( refused ).
+    cl_abap_unit_assert=>assert_equals( act = message exp = `Army 300 MIN, attack needs 500` ).
+    cl_abap_unit_assert=>assert_equals( act = stored( ) exp = 'ATTACK' ).
+  ENDMETHOD.
+ENDCLASS.
+
+CLASS ltc_result DEFINITION FINAL FOR TESTING
+  DURATION SHORT RISK LEVEL HARMLESS.
+  PRIVATE SECTION.
+    CONSTANTS game       TYPE sysuuid_x16 VALUE 'B9000000000000000000000000000001'.
+    CONSTANTS d1         TYPE sysuuid_x16 VALUE 'B9000000000000000000000000000002'.
+    CONSTANTS d2         TYPE sysuuid_x16 VALUE 'B9000000000000000000000000000003'.
+    CONSTANTS other_game TYPE sysuuid_x16 VALUE 'B9000000000000000000000000000004'.
+    CONSTANTS foreign    TYPE sysuuid_x16 VALUE 'B9000000000000000000000000000005'.
+    CLASS-DATA sql TYPE REF TO if_osql_test_environment.
+    DATA refused TYPE abap_boolean.
+    DATA message TYPE string.
+    CLASS-METHODS class_setup.
+    CLASS-METHODS class_teardown.
+    METHODS setup.
+    " one LUW: the action and its save
+    METHODS record IMPORTING winner   TYPE sysuuid_x16 OPTIONAL
+                             duration TYPE i OPTIONAL
+                             is_void  TYPE abap_boolean OPTIONAL.
+    METHODS result_of IMPORTING division     TYPE sysuuid_x16
+                      RETURNING VALUE(result) TYPE zsce_division-game_result.
+    METHODS game_row RETURNING VALUE(row) TYPE zsce_game.
+    METHODS winner_and_loser FOR TESTING RAISING cx_static_check.
+    METHODS tie_without_winner FOR TESTING RAISING cx_static_check.
+    METHODS void_wins_over_winner FOR TESTING RAISING cx_static_check.
+    METHODS foreign_winner_refused FOR TESTING RAISING cx_static_check.
+    METHODS second_record_refused FOR TESTING RAISING cx_static_check.
+ENDCLASS.
+
+CLASS ltc_result IMPLEMENTATION.
+  METHOD class_setup.
+    " the action reads the game's divisions through the managed READ: ZI_ views doubled as in ltc_posture_actions
+    sql = cl_osql_test_environment=>create( VALUE #( ( 'ZSCE_GAME' ) ( 'ZSCE_DIVISION' ) ( 'ZI_SCEGAME' ) ( 'ZI_SCEDIVISION' ) ) ).
+  ENDMETHOD.
+
+  METHOD class_teardown.
+    sql->destroy( ).
+  ENDMETHOD.
+
+  METHOD setup.
+    sql->clear_doubles( ).
+    ROLLBACK ENTITIES.
+    CLEAR: refused, message.
+    " game with d1 and d2, and another game with a division of its own; all results UNKNOWN
+    DATA games TYPE STANDARD TABLE OF zsce_game WITH EMPTY KEY.
+    DATA game_view TYPE STANDARD TABLE OF zi_scegame WITH EMPTY KEY.
+    DATA divisions TYPE STANDARD TABLE OF zsce_division WITH EMPTY KEY.
+    DATA division_view TYPE STANDARD TABLE OF zi_scedivision WITH EMPTY KEY.
+    games = VALUE #( ( game_uuid = game replay_hash = 'RESULT1' ) ( game_uuid = other_game replay_hash = 'RESULT2' ) ).
+    game_view = VALUE #( ( gameuuid = game replayhash = 'RESULT1' ) ( gameuuid = other_game replayhash = 'RESULT2' ) ).
+    divisions = VALUE #( ( division_uuid = d1 game_uuid = game bukrs = '1000' division_code = 'P1' game_result = 'UNKNOWN' )
+                         ( division_uuid = d2 game_uuid = game bukrs = '2000' division_code = 'P2' game_result = 'UNKNOWN' )
+                         ( division_uuid = foreign game_uuid = other_game bukrs = '3000' division_code = 'P3' game_result = 'UNKNOWN' ) ).
+    division_view = VALUE #( ( divisionuuid = d1 gameuuid = game companycode = '1000' divisioncode = 'P1' gameresult = 'UNKNOWN' )
+                             ( divisionuuid = d2 gameuuid = game companycode = '2000' divisioncode = 'P2' gameresult = 'UNKNOWN' )
+                             ( divisionuuid = foreign gameuuid = other_game companycode = '3000' divisioncode = 'P3' gameresult = 'UNKNOWN' ) ).
+    sql->insert_test_data( games ).
+    sql->insert_test_data( game_view ).
+    sql->insert_test_data( divisions ).
+    sql->insert_test_data( division_view ).
+  ENDMETHOD.
+
+  METHOD record.
+    MODIFY ENTITIES OF zi_scegame
+      ENTITY game
+        EXECUTE recordresult FROM VALUE #( ( gameuuid = game
+                                             %param = VALUE #( winnerdivisionuuid = winner
+                                                               durationseconds    = duration
+                                                               isvoid             = is_void ) ) )
+      FAILED DATA(failed) REPORTED DATA(reported).
+    refused = xsdbool( failed-game IS NOT INITIAL ).
+    IF reported-game IS NOT INITIAL.
+      message = reported-game[ 1 ]-%msg->if_message~get_text( ).
+    ENDIF.
+    COMMIT ENTITIES RESPONSE OF zi_scegame FAILED DATA(commit_failed) REPORTED DATA(commit_reported).
+    cl_abap_unit_assert=>assert_initial( act = commit_failed msg = 'the save itself must not fail' ).
+  ENDMETHOD.
+
+  METHOD result_of.
+    SELECT SINGLE game_result FROM zsce_division WHERE division_uuid = @division INTO @result.
+  ENDMETHOD.
+
+  METHOD game_row.
+    SELECT SINGLE * FROM zsce_game WHERE game_uuid = @game INTO @row.
+  ENDMETHOD.
+
+  METHOD winner_and_loser.
+    record( winner = d1 duration = 900 ).
+    cl_abap_unit_assert=>assert_false( refused ).
+    cl_abap_unit_assert=>assert_equals( act = result_of( d1 ) exp = 'WIN' ).
+    cl_abap_unit_assert=>assert_equals( act = result_of( d2 ) exp = 'LOSS' ).
+    DATA(row) = game_row( ).
+    cl_abap_unit_assert=>assert_equals( act = row-winner_division_uuid exp = d1 ).
+    cl_abap_unit_assert=>assert_equals( act = row-duration_seconds exp = 900 ).
+    cl_abap_unit_assert=>assert_equals( act = result_of( foreign ) exp = 'UNKNOWN' msg = 'the other game is not touched' ).
+  ENDMETHOD.
+
+  METHOD tie_without_winner.
+    record( duration = 600 ).
+    cl_abap_unit_assert=>assert_false( refused ).
+    cl_abap_unit_assert=>assert_equals( act = result_of( d1 ) exp = 'TIE' ).
+    cl_abap_unit_assert=>assert_equals( act = result_of( d2 ) exp = 'TIE' ).
+    DATA(row) = game_row( ).
+    cl_abap_unit_assert=>assert_initial( act = row-winner_division_uuid ).
+    cl_abap_unit_assert=>assert_equals( act = row-duration_seconds exp = 600 ).
+  ENDMETHOD.
+
+  METHOD void_wins_over_winner.
+    record( winner = d1 duration = 120 is_void = abap_true ).
+    cl_abap_unit_assert=>assert_false( refused ).
+    cl_abap_unit_assert=>assert_equals( act = result_of( d1 ) exp = 'VOID' ).
+    cl_abap_unit_assert=>assert_equals( act = result_of( d2 ) exp = 'VOID' ).
+    cl_abap_unit_assert=>assert_initial( act = game_row( )-winner_division_uuid ).
+    cl_abap_unit_assert=>assert_equals( act = game_row( )-duration_seconds exp = 120 ).
+  ENDMETHOD.
+
+  METHOD second_record_refused.
+    record( winner = d1 duration = 900 ).
+    cl_abap_unit_assert=>assert_false( refused ).
+    " the committed results reach the doubled ZI_SCEDivision, as the view would show them after the save
+    DATA view TYPE STANDARD TABLE OF zi_scedivision WITH EMPTY KEY.
+    SELECT division_uuid, game_uuid, bukrs, division_code, game_result FROM zsce_division INTO TABLE @DATA(saved).
+    view = VALUE #( FOR s IN saved ( divisionuuid = s-division_uuid gameuuid = s-game_uuid companycode = s-bukrs
+                                     divisioncode = s-division_code gameresult = s-game_result ) ).
+    sql->get_double( 'ZI_SCEDIVISION' )->clear( ).
+    sql->insert_test_data( view ).
+    record( winner = d2 duration = 500 ).
+    cl_abap_unit_assert=>assert_true( refused ).
+    cl_abap_unit_assert=>assert_equals( act = message exp = `Result already recorded` ).
+    cl_abap_unit_assert=>assert_equals( act = result_of( d1 ) exp = 'WIN' ).
+    cl_abap_unit_assert=>assert_equals( act = result_of( d2 ) exp = 'LOSS' ).
+    DATA(row) = game_row( ).
+    cl_abap_unit_assert=>assert_equals( act = row-winner_division_uuid exp = d1 ).
+    cl_abap_unit_assert=>assert_equals( act = row-duration_seconds exp = 900 ).
+  ENDMETHOD.
+
+  METHOD foreign_winner_refused.
+    record( winner = foreign duration = 900 ).
+    cl_abap_unit_assert=>assert_true( refused ).
+    cl_abap_unit_assert=>assert_equals( act = message exp = `Winner is not a division of this game` ).
+    " nothing changed, read back after the commit
+    DATA(row) = game_row( ).
+    cl_abap_unit_assert=>assert_equals( act = row-replay_hash exp = 'RESULT1' msg = 'the game row exists' ).
+    cl_abap_unit_assert=>assert_initial( act = row-winner_division_uuid ).
+    cl_abap_unit_assert=>assert_initial( act = row-duration_seconds ).
+    cl_abap_unit_assert=>assert_equals( act = result_of( d1 ) exp = 'UNKNOWN' ).
+    cl_abap_unit_assert=>assert_equals( act = result_of( d2 ) exp = 'UNKNOWN' ).
+    cl_abap_unit_assert=>assert_equals( act = result_of( foreign ) exp = 'UNKNOWN' ).
   ENDMETHOD.
 ENDCLASS.

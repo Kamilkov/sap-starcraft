@@ -12,6 +12,9 @@ etag master LastChangedAt
   delete;
   association _Division { create; }
 
+  // Part 2 (Plan B): the referee reports the match once; winner, duration and every division's result in one save; same ponytail as releaseOrder
+  action ( authorization : none ) recordResult parameter ZA_SCERecordResult;
+
   field ( readonly : update ) GameUUID;
   field ( readonly ) CreatedAt, LastChangedAt;
   field ( mandatory : create ) ReplayHash;
@@ -54,6 +57,8 @@ etag dependent by _Game
   // MRP (B.3): PIRs (MD61), a regenerative run (MD01); same ponytail as releaseOrder
   action ( authorization : none ) planRequirement parameter ZA_SCEPlanRequirement { default function GetDefaultsForPlanRequirement; }
   action ( authorization : none ) runMrp;
+  // Part 2: the AI planner's army posture (DEFEND/ATTACK); ATTACK needs a 500 MIN army, workers excluded; same ponytail
+  action ( authorization : none ) setPosture parameter ZA_SCESetPosture;
 
   // Fiori re-reads the table an action changes
   side effects
@@ -61,10 +66,13 @@ etag dependent by _Game
     action releaseOrder affects entity _ProdOrder;
     action planRequirement affects entity _Requirement;
     action runMrp affects entity _PlannedOrder;
+    action setPosture affects field ArmyPosture;
   }
 
   field ( readonly : update ) DivisionUUID;
   field ( readonly ) GameUUID;
+  // setPosture is the only writer
+  field ( readonly ) ArmyPosture;
 
   mapping for zsce_division
   {
@@ -74,6 +82,8 @@ etag dependent by _Game
     DivisionCode = division_code;
     PlayerName   = player_name;
     GameResult   = game_result;
+    GameClock    = game_clock;
+    ArmyPosture  = army_posture;
   }
 }
 
@@ -119,6 +129,11 @@ etag dependent by _Game
 
   field ( readonly : update ) OrderUUID;
   field ( readonly ) DivisionUUID, GameUUID;
+  // the availability check prices an order when it is created; what and how many cannot change after that
+  field ( readonly : update ) Material, Quantity;
+
+  // create and status changes only: the bot's StatusText and time updates are not checked
+  validation validateAvailability on save { create; field OrderStatus; }
 
   mapping for zsce_prodord
   {

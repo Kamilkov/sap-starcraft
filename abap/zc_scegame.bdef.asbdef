@@ -8,6 +8,7 @@ define behavior for ZC_SCEGame alias Game
   use update;
   use delete;
   use association _Division { create; }
+  use action recordResult;
 }
 
 define behavior for ZC_SCEDivision alias Division
@@ -25,6 +26,7 @@ define behavior for ZC_SCEDivision alias Division
   use action planRequirement;
   use function GetDefaultsForPlanRequirement;
   use action runMrp;
+  use action setPosture;
   use association _Notification { create; }
   use association _MaintOrder;
 }

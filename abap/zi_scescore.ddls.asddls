@@ -15,12 +15,12 @@ define view entity ZI_SCEScore
       E.CompanyCode,
       E.Race,
       // running totals through the end of G.GameMinute; stock curves signed as ZI_SCEStockBalance (261 and 551 subtract)
-      sum( case when E.Category = 'UNIT' and E.Material <> 'SCV'
+      sum( case when E.Category = 'UNIT' and E.Material <> 'SCV' and E.Material <> 'Probe'
                 then case E.MovementType when '261' then 0 - V.ValueMin
                                          when '551' then 0 - V.ValueMin
                                          else V.ValueMin end
                 else 0 end )                                            as ArmyValue,
-      sum( case when E.Material = 'SCV'
+      sum( case when E.Material = 'SCV' or E.Material = 'Probe'
                 then case E.MovementType when '261' then 0 - E.Quantity
                                          when '551' then 0 - E.Quantity
                                          else E.Quantity end

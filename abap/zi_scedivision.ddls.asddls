@@ -20,6 +20,8 @@ define view entity ZI_SCEDivision
       division_code as DivisionCode,
       player_name   as PlayerName,
       game_result   as GameResult,
+      game_clock    as GameClock,
+      army_posture  as ArmyPosture,
       _Game,
       _Plant,
       _ProdOrder,

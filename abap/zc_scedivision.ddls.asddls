@@ -10,7 +10,8 @@ define view entity ZC_SCEDivision
   association [0..*] to ZC_SCEEquipment       as _Equipment    on _Equipment.DivisionUUID = $projection.DivisionUUID
   association [0..*] to ZC_SCESerialNumber    as _SerialNumber on _SerialNumber.DivisionUUID = $projection.DivisionUUID
 {
-      @UI.facet: [{ id: 'Finance',      type: #PRESENTATIONVARIANT_REFERENCE, targetElement: '_Finance',      targetQualifier: 'ByPlayer', label: 'Finance',           position: 5 },
+      @UI.facet: [{ id: 'PostureHeader', purpose: #HEADER, type: #DATAPOINT_REFERENCE, targetQualifier: 'Posture', position: 1 },
+                  { id: 'Finance',      type: #PRESENTATIONVARIANT_REFERENCE, targetElement: '_Finance',      targetQualifier: 'ByPlayer', label: 'Finance',           position: 5 },
                   { id: 'Plants',       type: #LINEITEM_REFERENCE,            targetElement: '_Plant',                                     label: 'Outposts',          position: 10 },
                   { id: 'PlantFinance', type: #PRESENTATIONVARIANT_REFERENCE, targetElement: '_PlantFinance', targetQualifier: 'ByPlant',  label: 'Outpost finance',   position: 15 },
                   { id: 'Orders',       type: #LINEITEM_REFERENCE,            targetElement: '_ProdOrder',                                 label: 'Production Orders', position: 20 },
@@ -32,10 +33,20 @@ define view entity ZC_SCEDivision
                      { type: #FOR_ACTION, dataAction: 'releaseOrder', label: 'Release Order' }]
       @UI.identification: [{ type: #FOR_ACTION, dataAction: 'releaseOrder', label: 'Release Order' },
                            { type: #FOR_ACTION, dataAction: 'planRequirement', label: 'Plan Requirement' },
-                           { type: #FOR_ACTION, dataAction: 'runMrp', label: 'Run MRP' }]
+                           { type: #FOR_ACTION, dataAction: 'runMrp', label: 'Run MRP' },
+                           { type: #FOR_ACTION, dataAction: 'setPosture', label: 'Set Army Posture' }]
       PlayerName,
       @UI.lineItem: [{ position: 40 }]
       GameResult,
+      // Part 2: the referee writes the game clock at every decision tick; MRP and the PIR defaults read it
+      @EndUserText.label: 'Game clock (s)'
+      @UI.lineItem: [{ position: 45, label: 'Game clock (s)' }]
+      GameClock,
+      // Part 2: ''/DEFEND or ATTACK; the bots poll it, setPosture is the only writer (ATTACK needs a 500 MIN army)
+      @EndUserText.label: 'Army posture'
+      @UI.lineItem: [{ position: 47, label: 'Army posture' }]
+      @UI.dataPoint: { qualifier: 'Posture', title: 'Army posture' }
+      ArmyPosture,
       _NetWorth.ReportingCurrency as ReportingCurrency,
       // B.2.1: minerals + gas at the TCURR rate M (GAS -> MIN), see ZI_SCEDivisionNetWorth
       @EndUserText.label: 'Net worth (MIN)'

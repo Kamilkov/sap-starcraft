@@ -5,6 +5,7 @@ CLASS zcl_sce_score_test DEFINITION PUBLIC FINAL CREATE PUBLIC
     CONSTANTS game  TYPE sysuuid_x16 VALUE 'A3000000000000000000000000000003'.
     CONSTANTS player TYPE sysuuid_x16 VALUE 'D3000000000000000000000000000003'.
     CONSTANTS rival  TYPE sysuuid_x16 VALUE 'D4000000000000000000000000000004'.
+    CONSTANTS protoss TYPE sysuuid_x16 VALUE 'D5000000000000000000000000000005'.
     CLASS-DATA env TYPE REF TO if_cds_test_environment.
     DATA grid TYPE STANDARD TABLE OF zi_scescoreminute WITH EMPTY KEY.
     DATA events TYPE STANDARD TABLE OF zi_scemovementanalysis WITH EMPTY KEY.
@@ -21,10 +22,13 @@ CLASS zcl_sce_score_test DEFINITION PUBLIC FINAL CREATE PUBLIC
                           category TYPE zi_scemovementanalysis-category OPTIONAL
                           qty      TYPE i DEFAULT 1
                           minerals TYPE i DEFAULT 0
-                          gas      TYPE i DEFAULT 0.
+                          gas      TYPE i DEFAULT 0
+                          company  TYPE zi_scemovementanalysis-companycode DEFAULT '1000'
+                          race     TYPE zi_scemovementanalysis-race DEFAULT 'Terran'.
     METHODS score IMPORTING division   TYPE sysuuid_x16
                             minute     TYPE i
                   RETURNING VALUE(row) TYPE zi_scescore.
+    METHODS probes_are_workers_not_army FOR TESTING.
     METHODS army_counts_units_not_workers FOR TESTING.
     METHODS army_drops_with_losses FOR TESTING.
     METHODS workers_opening_trained_lost FOR TESTING.
@@ -51,8 +55,8 @@ CLASS zcl_sce_score_test IMPLEMENTATION.
                     latestgame   = 'Yes'
                     divisionuuid = division
                     playername   = COND #( WHEN division = player THEN 'SAP Outpost' ELSE 'Rival' )
-                    companycode  = '1000'
-                    race         = 'Terran'
+                    companycode  = company
+                    race         = race
                     gameminute   = minute
                     gameseconds  = minute * 60
                     movementtype = mvt
@@ -72,7 +76,8 @@ CLASS zcl_sce_score_test IMPLEMENTATION.
     grid = VALUE #( ( divisionuuid = player gameminute = 0 )
                     ( divisionuuid = player gameminute = 1 )
                     ( divisionuuid = player gameminute = 3 )
-                    ( divisionuuid = rival  gameminute = 0 ) ).
+                    ( divisionuuid = rival  gameminute = 0 )
+                    ( divisionuuid = protoss gameminute = 0 ) ).
     add( id = 1  division = player minute = 0 mvt = '561' material = 'SCV'         category = 'UNIT'      qty = 8   minerals = 400 ).
     add( id = 2  division = player minute = 0 mvt = '561' material = 'MINERAL'     category = 'RAW'       qty = 50  minerals = 50 ).
     add( id = 3  division = player minute = 0 mvt = '501' material = 'MINERAL'     category = 'RAW'       qty = 100 minerals = 100 ).
@@ -88,6 +93,10 @@ CLASS zcl_sce_score_test IMPLEMENTATION.
     add( id = 13 division = player minute = 3 mvt = '551' material = 'Mystery'                            minerals = 30 ).
     add( id = 14 division = rival minute = 0 mvt = '561' material = 'SCV'      category = 'UNIT'      qty = 12  minerals = 600 ).
     add( id = 15 division = rival minute = 0 mvt = '501' material = 'MINERAL'  category = 'RAW'       qty = 999 minerals = 999 ).
+    add( id = 16 division = protoss minute = 0 mvt = '561' material = 'Probe'  category = 'UNIT'      qty = 12  minerals = 600
+         company = '3000' race = 'Protoss' ).
+    add( id = 17 division = protoss minute = 0 mvt = '561' material = 'Zealot' category = 'UNIT'      qty = 2   minerals = 200
+         company = '3000' race = 'Protoss' ).
     env->insert_test_data( i_data = grid ).
     env->insert_test_data( i_data = events ).
     env->insert_test_data( i_data = values ).
@@ -96,6 +105,14 @@ CLASS zcl_sce_score_test IMPLEMENTATION.
   METHOD score.
     SELECT SINGLE * FROM zi_scescore WHERE divisionuuid = @division AND gameminute = @minute INTO @row.
     cl_abap_unit_assert=>assert_subrc( exp = 0 msg = |no score row for minute { minute }| ).
+  ENDMETHOD.
+
+  METHOD probes_are_workers_not_army.
+    DATA(row) = score( division = protoss minute = 0 ).
+    cl_abap_unit_assert=>assert_equals( act = CONV i( row-workers ) exp = 12
+                                        msg = 'opening Probes are workers' ).
+    cl_abap_unit_assert=>assert_equals( act = CONV i( row-armyvalue ) exp = 200
+                                        msg = 'only the 2 Zealots (100 each) are army, Probes are not' ).
   ENDMETHOD.
 
   METHOD army_counts_units_not_workers.

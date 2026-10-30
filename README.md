@@ -97,7 +97,7 @@ SAP drives an outpost. One process, one game:
 ```
 
 1. The bot deep-creates a Game + Division `LIVE` (company 1000) + Plant `0001`, prints their UUIDs, then launches StarCraft II (Terran vs Zerg AI, realtime).
-2. Open the Division in **Game Control** (launchpad tile; the ADT preview of `ZSB_SCE_O4` works too) → **Release Order** (Material with value help, Quantity). Each unit becomes one `ProdOrder` in status `RELEASED`. The Material value help lists the division's company materials with a Buildable column (producer and prerequisite on hand, cost within the mineral and gas balance, all from the ledger); filter on it to see what can be built now. Quantity starts at 1. If SAP's ledger says the material is not buildable yet, Fiori shows a warning with the reason and asks to confirm; confirmed, the order is created and waits. **Also order missing prerequisites** (ticked by default) works like MRP dependent requirements: SAP walks the tech tree (producer, prerequisite, theirs, …) and releases one order for each one the division neither has on hand nor already has on order (RELEASED/STARTED), ahead of the requested units. So 5 Marauders in a fresh game also release a Supply Depot, a Barracks and a Barracks TechLab; the dialog lists each as `1 × … released (prerequisite)`. The bot's backlog builds them in tech order. Untick it to release only what you typed.
+2. Open the Division in **Game Control** (launchpad tile; the ADT preview of `ZSB_SCE_O4` works too) → **Release Order** (Material with value help, Quantity). Each unit becomes one `ProdOrder` in status `RELEASED`. The Material value help lists the division's company materials with a Buildable column (producer and prerequisite on hand, cost within the mineral and gas balance, all from the ledger); filter on it to see what can be built now. Quantity starts at 1. A release the ledger cannot cover (no producer or prerequisite on hand or ordered, over the mineral or gas balance, a blocked material) is refused with the reason; see Part 2 rules. **Also order missing prerequisites** (ticked by default) works like MRP dependent requirements: SAP walks the tech tree (producer, prerequisite, theirs, …) and releases one order for each one the division neither has on hand nor already has on order (RELEASED/STARTED), ahead of the requested units. So 5 Marauders in a fresh game also release a Supply Depot, a Barracks and a Barracks TechLab; the dialog lists each as `1 × … released (prerequisite)`. The bot's backlog builds them in tech order. Untick it to release only what you typed.
 3. The bot keeps waiting orders in a backlog, refreshed by each SAP poll (every 5 s) and retried every ~0.5 game seconds. Units are queued into the producer with the shortest queue (up to 5 per structure), so several Marines of one release go into the Barracks queue at once; STARTED means "queued in the game", which is also when SC2 deducts the cost. When a unit appears the order becomes CONFIRMED with its UnitTag. While an order waits, the "Bot message" column shows why (updated only when the reason changes; reload the page to see it). Orders can be cancelled in the Production Orders table → **Cancel Order**. A RELEASED order becomes CANCELLED at once (`cancelled in SAP`). A STARTED order becomes CANCELLING (`cancel requested`); within about 5 s the bot cancels it in the game and answers CANCELLED with `cancelled in game, refund 100%` (queued unit, research, structure whose SCV is still walking) or `refund 75%` (structure or add-on under construction; the unrecovered 25% becomes Scrap), booking the refund as 262. If the game cannot do it the order goes back to STARTED with `cannot cancel: not last in any queue` (only the last item of a production queue can be cancelled) or `not found in the game`, or to CONFIRMED with `cannot cancel: already built`.
 4. Goods movements arrive live with `EventSource = LIVE`: 561 at start, 501 mining summed over four stats ticks (every ~28 s), 261 at STARTED (the game's own cost), 262 when the game refused the command (below), a cancel refunded it or a destroyed producer's queue came back, 101 at completion, 551 on death. New Command Centers become plants. So the ledger's mineral balance (Buildable column, `Waits:` warning) can lag the game by up to ~28 s.
 5. On leaving or game end: duration and result are patched, the replay is saved to `replays/`, and a reconciliation line compares posted 261 − 262 minerals/gas with what the game reports as spent.
@@ -339,6 +339,45 @@ A second Analytical List Page: tile
 cd app/score && npm install
 npm run deploy     # BSP ZSCE_SCORE in $ZSCE; credentials from ../../.env (SAP_USER, SAP_PASSWORD)
 ```
+
+## Part 2 rules (Plan A)
+
+The SAP side of the Terran vs Protoss match (design: `docs/superpowers/specs/2026-10-29-part2-terran-vs-protoss-design.md`,
+gitignored). SAP is the rule keeper for what a planner orders: a production order reaches RELEASED only through
+these checks. Event postings and the refund of a STARTED order back to RELEASED stay with the bot and are not checked;
+locking LIVE postings to the bot's own user is a later step.
+
+- **Order blocking.** `Material.OrderBlocked` (blank = orderable) is `X` for Archon, WarpGate, WarpGateResearch and
+  Carrier (company 3000), SAP's "blocked for procurement". The Protoss tech tree is in `materials.csv`;
+  `ingest/check_materials.py` compares the CSV with the SC2 client (build 5.0.16.97563, Base97563) and
+  `ingest/test_materials.py` guards it. `BuildableMaterial` leaves blocked materials out; the Release Order value
+  help lists every orderable material with a Buildable column (the default Buildable filter is gone).
+- **Availability check** (`validateAvailability` on the production order). A new order needs quantity ≥ 1 and status
+  RELEASED or CONFIRMED (CONFIRMED is replay ingestion and is not checked). A RELEASED order is refused for a blocked
+  or unknown material (`X cannot be ordered`), a missing producer or prerequisite (`Needs X: none on hand or ordered`:
+  stock plus open orders count) and a budget overrun (`Over budget: N MIN needed, M available`, the same with GAS;
+  stock minus what open orders already committed). All new RELEASED orders of a division in one save are priced
+  together. Material and Quantity are read-only after creation.
+- **Status walk guard** (beyond the plan). An order enters RELEASED, STARTED or CANCELLING only from one of those three
+  statuses, else `{db status} order cannot go back to {status}`; a CONFIRMED or CANCELLED order cannot be reopened.
+  A new order in any other status is refused with `Orders are created RELEASED, not {status}`. Closes the bypass
+  around the availability check.
+- **Game clock.** `Division.GameClock` (seconds, written by the referee) is the division's time. Plan Requirement's
+  default due minute and Run MRP use it, falling back to the latest event time while it is 0. Plan Requirement refuses
+  a blocked material; Run MRP skips blocked PIRs with the warning `X: not orderable`.
+- **Army posture.** `Division.ArmyPosture` (DEFEND or ATTACK) is written only by the action `setPosture` (button
+  **Set Army Posture** on the Division page). ATTACK needs an army value of at least 500 MIN
+  (`ZI_SCEDivisionArmyValue`: SCV and Probe excluded, gas counted at rate M as in Score over time, a Marauder is
+  150 MIN); otherwise `Army N MIN, attack needs 500`. Any other posture is refused with `Posture X unknown`
+  (upper case, as sent).
+- **Record result.** The Game action `recordResult(WinnerDivisionUUID, DurationSeconds, IsVoid)` writes WIN and LOSS,
+  TIE (blank winner) or VOID (`IsVoid`, any winner ignored) on every division, the winner and the duration on the
+  game, in one save. A winner outside the game is refused (`Winner is not a division of this game`).
+  **Re-record guard** (beyond the plan): a game whose divisions already carry a result is refused
+  (`Result already recorded`), so the action cannot rewrite a result. A plain PATCH of `GameResult` stays open
+  because a single-bot Part 1 game writes its own result; in Part 2 only the referee writes results.
+- **Score.** Probes count as workers, not army, like SCVs (`ZI_SCEScore`).
+- Division is `etag dependent by _Game`: PATCH and bound actions need `If-Match: *`, as `ingest/push.py` sends.
 
 ## Next (phase B)
 

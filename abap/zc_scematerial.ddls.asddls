@@ -33,5 +33,8 @@ define root view entity ZC_SCEMaterial
       ProducedBy,
       @UI.lineItem: [{ position: 90 }]
       Prerequisite,
+      @EndUserText.label: 'Blocked for orders'
+      @UI.lineItem: [{ position: 100 }]
+      OrderBlocked,
       LastChangedAt
 }
